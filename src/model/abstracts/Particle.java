@@ -1,7 +1,6 @@
 package model.abstracts;
 
 public abstract class Particle {
-  private MovementBehaviour movement;
+  private MovementBehaviour[] movements;
   private ReactionBehaviour[] reactions;
-  private StateBehaviour[] states;
 }
