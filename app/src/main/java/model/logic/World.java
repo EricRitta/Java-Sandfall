@@ -1,6 +1,8 @@
 package model.logic;
+import java.util.Random;
 
 public class World {
+  private final Random random = new Random();
   private int CHUNK_SIZE = 64;
   private int BOX_SIZE = 8; // 512 x 512 celulas, ou seja 250k+ celulas
   private int WORLD_SIZE = BOX_SIZE * CHUNK_SIZE;
@@ -51,5 +53,6 @@ public class World {
   // GETTERS //
   public int getTime() { return this.time; }
   public int getCHUNK_SIZE() { return this.CHUNK_SIZE; }
+  public Random getRandom() { return this.random; }
   //==============================================================================================================
 }

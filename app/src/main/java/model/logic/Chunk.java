@@ -1,4 +1,5 @@
 package model.logic;
+import java.util.Random;
 
 public class Chunk {
   // CONSTANTS //
@@ -31,20 +32,30 @@ public class Chunk {
     this.active = new int[CHUNK_SIZE * CHUNK_SIZE];
   }
 
+  private int index(int cx, int cy) {
+    return (cy * CHUNK_SIZE + cx) * FIELDS;
+  }
+
   //== SETTERS ==//
+  // basic
+  public void setProcessId(int value) { this.processId = value; }
+  public void setIsActive(boolean value) { this.isActive = value; }
+
+  // neighbor
   public void setNeighbor(int dx, int dy, Chunk neighbor) {
     NEIGHBORS_GRID[(dy + 1) * NEIGHBOR_GRID_SIZE + (dx + 1)] = neighbor;
   }
   
-  public void setCell(int cx, int cy, int value) {
+  // data
+  public void setRawCell(int cx, int cy, int value) {
     data[index(cx, cy) + CELL_ID] = value; 
   }
 
-  public void setCellDeadline(int cx, int cy, int value) {
+  public void setRawCellDeadline(int cx, int cy, int value) {
     data[index(cx, cy) + CELL_DEADLINE] = value;
   }
 
-  public void setCellProcessed(int cx, int cy, int value) {
+  public void setRawCellProcessId(int cx, int cy, int value) {
     if (value == 0 || value == 1) {
       data[index(cx, cy) + CELL_PROCESS_ID] = value;
     } else {
@@ -53,91 +64,122 @@ public class Chunk {
       );
     }
   }
-
-  public void setProcessId(int value) { this.processId = value; }
-  public void setIsActive(boolean value) { this.isActive = value; }
   //==============================================================================================================
 
   //== GETTERS ==//
+  // basic
+  public int getProcessId() { return this.processId; }
+  public boolean getIsActive() { return this.isActive; }
+
+  // neighbor
   public Chunk getNeighbor(int dx, int dy) {
     return NEIGHBORS_GRID[(dy + 1) * NEIGHBOR_GRID_SIZE + (dx + 1)];
   }
 
-  public int getCell(int cx, int cy) {
+  // data
+  public int getRawCell(int cx, int cy) {
     return data[index(cx, cy) + CELL_ID];
   }
 
-  public int getCellDeadline(int cx, int cy) {
+  public int getRawCellDeadline(int cx, int cy) {
     return data[index(cx, cy) + CELL_DEADLINE];
   }
 
-  public int getCellProcessed(int cx, int cy) {
+  public int getRawCellProcessId(int cx, int cy) {
     return data[index(cx, cy) + CELL_PROCESS_ID];
   }
-
-  public int getProcessId() { return this.processId; }
-  public boolean getIsActive() { return this.isActive; }
   //==============================================================================================================
 
-
-
   // PRIVATES //
-  private void inBounds(int cx, int cy) {
-    if (cx >= 0 && cx < CHUNK_SIZE && cy >= 0 && cy < CHUNK_SIZE) {
-      throw new IllegalArgumentException(
-        "Position out of bounds in a " + CHUNK_SIZE + "size chunk: (" + cx + ", " + cy + ")" 
-      );
-    }
+  private boolean inBounds(int cx, int cy) {
+    return cx >= 0 && cx < CHUNK_SIZE && cy >= 0 && cy < CHUNK_SIZE;
   }
-  private int index(int cx, int cy) {
-    inBounds(cx, cy);
-    return (cy * CHUNK_SIZE + cx) * FIELDS;
+  
+  // neighbor
+  private int chunkToNeighborGrid(int cpos) {
+    if (cpos < 0) { return -1; }
+    if (cpos >= CHUNK_SIZE) { return 1; }
+    return 0;
+  }
+  private int translateToNeighbor(int cpos) {
+    if (cpos < 0) { return cpos + CHUNK_SIZE; }
+    if (cpos >= CHUNK_SIZE) { return cpos - CHUNK_SIZE; }
+    return cpos;
+  }
+
+  // game logic
+  private void shuffleAndProcess() {
+    int i = activeCount - 1;
+    while (i >= 0) {
+      int j = getRandom().nextInt(i + 1);
+      int tmp = active[i];
+      active[i] = active[j];
+      active[j] = tmp;
+
+      int cellIndex = active[i];
+      int cellProcessId = stepCell(cellIndex); // method that get the specific cell by Id and steps it, returning processId
+
+      if (processId != cellProcessId) {
+        active[i] = active[activeCount - 1];
+        activeCount--;
+      }
+
+      i--;
+    }
   }
   //==============================================================================================================
   
-  // se X > 64 e Y normal = right
-  // se X < 0 e Y normal = left
-  // se X normal e y > 64 = down
-  // se X normal e y < 0 = up
-  //
-  // se X > 64 e Y < 0 = up_right
-  // se X > 64 e Y > 64 = down_right
-  // se X < 0 e Y < 0 = up_left
-  // se X < 0 e Y > 64 = down_left
-
   //== PUBLICS ==//
   // basic
   public int getTime() {
     return WORLD.getTime();
   }
 
-  // neighbor logic
-
-
-  public int step(World world) {
-    return this.processId;
-  }
-
-  public void setCell(int cx, int cy) {
-    
-  }
-
-  public void activateCell(int cx, int cy) {
-    
+  public Random getRandom() {
+    return WORLD.getRandom();
   }
 
   // cell logic
-  public int getCellIn(int cx, int cy) {
-    // bounds
-    // true
-      // getCellId
-    // false
-      // neighbor
-      // true
-        // neighbor.getCell
-      // false
-        // error, out of bounds 
+  public void setCellIn(int cx, int cy, int id, int deadline, int processId) {
+    if (inBounds(cx, cy)) {
+      int idx = index(cx, cy);
+      data[idx + CELL_ID] = id;
+      data[idx + CELL_DEADLINE] = deadline;
+      data[idx + CELL_PROCESS_ID] = processId;
+      return;
+    }
+    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
+    neighbor.setCellIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline, processId);
+    // TODO: fallback to world if x or y doubles the neighbor (128+ or -64+)
   }
 
+  public int getCellIn(int cx, int cy) {
+    if (inBounds(cx, cy)) {
+      return getRawCell(cx, cy);
+    } 
+    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
+    return neighbor.getCellIn(translateToNeighbor(cx), translateToNeighbor(cy));
+    // TODO: fallback to world if x or y doubles the neighbor (128+ or -64+)
+  }
+
+  // TODO: sleeping method for future
+  // public void activateCell(int cx, int cy) {
+  //
+  // }
+
+  // game logic
+  public int step() {
+    this.processId ^= 1;
+    shuffleAndProcess();
+    if (activeCount == 0) {
+      this.processId ^= 1;
+      this.isActive = false;
+      return getProcessId();
+    }
+    this.isActive = true;
+    return getProcessId();
+  }
   //==============================================================================================================
 }
