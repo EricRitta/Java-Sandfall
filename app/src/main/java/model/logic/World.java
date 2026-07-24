@@ -49,6 +49,7 @@ public class World {
 
 
   // GETTERS //
+  public int getTime() { return this.time; }
   public int getCHUNK_SIZE() { return this.CHUNK_SIZE; }
   //==============================================================================================================
 }
