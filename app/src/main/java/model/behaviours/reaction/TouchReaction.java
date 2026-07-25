@@ -6,7 +6,9 @@ import model.logic.Chunk;
 public class TouchReaction implements ReactionBehaviour {
   
   @Override
-  public void step(Cell c, Chunk chunk, int cx, int cy) {
-
+  public boolean step(Cell c, Chunk chunk, int cx, int cy) {
+    boolean sucess = false;
+    // TODO: TouchReaction logic
+    return sucess;
   }
 }

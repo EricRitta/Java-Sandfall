@@ -7,5 +7,8 @@ public abstract class Cell {
   private MovementBehaviour[] movements;
   private ReactionBehaviour[] reactions;
 
-  public void step(Chunk chunk, int cx, int cy) {}
+  public boolean step(Chunk chunk, int cx, int cy) {
+    boolean changed = false;
+    return changed;
+  }
 }
