@@ -1,4 +1,6 @@
 package model.logic;
+
+import model.logic.CellHolder;
 import model.logic.DirtyRect;
 import model.abstracts.Cell;
 import java.util.Random;
@@ -12,7 +14,7 @@ public class Chunk {
   private static final int NEIGHBOR_GRID_SIZE = 9;
 
   //== "SEMI-CONSTANTS" ==//
-  private int ID;
+  private int INDEX;
   private World WORLD;
   private int CHUNK_SIZE;
   private Chunk[] NEIGHBORS_GRID = new Chunk[NEIGHBOR_GRID_SIZE];
@@ -25,8 +27,8 @@ public class Chunk {
   private DirtyRect processRect;
 
   //== CALL METHOD ==//
-  public Chunk(int id, World w) {
-    this.ID = id;
+  public Chunk(int i, World w) {
+    this.INDEX = i;
     this.WORLD = w;
     this.CHUNK_SIZE = WORLD.getChunkSize();
 
@@ -101,7 +103,7 @@ public class Chunk {
       setRawCellSkipThisFrame(cx, cy, 0);
       return;
     }
-    Cell cell = getCellById(getRawCell(cx, cy));
+    Cell cell = CellHolder.get(getRawCell(cx, cy));
     cell.step(this, cx, cy);
   }
 
@@ -125,6 +127,7 @@ public class Chunk {
   
   //== PUBLICS ==//
   // basic
+  public int getIndex() { return this.INDEX; }
   public int getTime() { return WORLD.getTime(); }
   public Random getRandom() { return WORLD.getRandom(); }
 
@@ -157,6 +160,10 @@ public class Chunk {
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
     if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
     neighbor.setCellIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline);
+  }
+
+  public void activateCell(int cx, int cy) {
+    holdingRect.makeDirty(cx, cy);
   }
 
   public int getCellIn(int cx, int cy) {
