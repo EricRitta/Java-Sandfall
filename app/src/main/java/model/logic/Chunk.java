@@ -60,7 +60,6 @@ public class Chunk {
   }
 
   //== GETTERS ==//
-  public int getFrameId() { return WORLD.getFrameId(); }
   public boolean getIsActive() { return this.isActive; }
   public Chunk getNeighbor(int dx, int dy) {
     return NEIGHBORS_GRID[(dy + 1) * NEIGHBOR_GRID_SIZE + (dx + 1)];
@@ -141,7 +140,7 @@ public class Chunk {
       data[idx + CELL_ID] = id;
       data[idx + CELL_DEADLINE] = deadline;
       data[idx + CELL_SKIP_THIS_FRAME] = skipThisFrame;
-      holdingRect.makeDirty(cx, cy);
+      activateCell(cx, cy);
       return;
     }
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
@@ -154,7 +153,7 @@ public class Chunk {
       data[idx + CELL_ID] = id;
       data[idx + CELL_DEADLINE] = deadline;
       data[idx + CELL_SKIP_THIS_FRAME] = 1;
-      holdingRect.makeDirty(cx, cy);
+      activateCell(cx, cy);
       return;
     }
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
@@ -164,6 +163,7 @@ public class Chunk {
 
   public void activateCell(int cx, int cy) {
     holdingRect.makeDirty(cx, cy);
+    setIsActive(true);
   }
 
   public int getCellIn(int cx, int cy) {

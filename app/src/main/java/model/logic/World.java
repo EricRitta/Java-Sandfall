@@ -56,7 +56,11 @@ public class World {
   public void incrementTime() { time++; }
 
   //== GETTERS ==//
-  public int getWorldSize() { return CHUNK_SIZE * BOX_SIZE; }
+  public int getTime() { return time; }
+  public int getBoxSize() { return BOX_SIZE; }
+  public int getChunkSize() { return CHUNK_SIZE; }
+  public int getFullWorldSize() { return CHUNK_SIZE * BOX_SIZE * BOX_SIZE; }
+  public Random getRandom() { return this.random; }
 
   //== PRIVATES ==//
   private int dataIndex(int wx, int wy) {
@@ -64,42 +68,4 @@ public class World {
   }
 
   //== PUBLICS ==//
-
-  // IMPORTANT PRIVATES //
-  private void inWorldBounds(int x, int y) {
-    if (x >= 0 && x < WORLD_SIZE && y >= 0 && y < WORLD_SIZE) {
-      throw new IllegalArgumentException(
-        "Position out of bounds in a " + WORLD_SIZE + "world size: (" + x + ", " + y + ")" 
-      );
-    }
-  }
-  private int worldIndex(int x, int y) {
-
-  }
-  private int index(int x, int y) {
-    inBounds(x, y);
-    return (y * CHUNK_SIZE + x) * FIELDS;
-  }
-  //==============================================================================================================
-
-
-  void getWorldIndexByCord(int x, int y) {
-      
-  }
-
-
-  // SETTERS //
-  public void setId(int x, int y, int value) {
-
-    data[index(x, y) + ID] = value; 
-  }
-  //==============================================================================================================
-
-
-
-  // GETTERS //
-  public int getTime() { return this.time; }
-  public int getChunkSize() { return this.CHUNK_SIZE; }
-  public Random getRandom() { return this.random; }
-  //==============================================================================================================
 }
