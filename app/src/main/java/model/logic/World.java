@@ -2,11 +2,19 @@ package model.logic;
 import java.util.Random;
 
 public class World {
+  public static final int OUT_OF_WORLD = Integer.MIN_VALUE;
+
+  // CONSTANTS //
   private final Random random = new Random();
+
+  // "SEMI-CONSTANTS" //
   private int CHUNK_SIZE = 64;
-  private int BOX_SIZE = 8; // 512 x 512 celulas, ou seja 250k+ celulas
+  private int BOX_SIZE = 8; // 512 x 512 cells
   private int WORLD_SIZE = BOX_SIZE * CHUNK_SIZE;
+
+  // VARIABLES //
   private int time = 0;
+  private int frameId = 0;
 
   private Chunk[] data = new Chunk[BOX_SIZE * BOX_SIZE];
 
@@ -52,7 +60,8 @@ public class World {
 
   // GETTERS //
   public int getTime() { return this.time; }
-  public int getCHUNK_SIZE() { return this.CHUNK_SIZE; }
+  public int getFrameId() { return this.frameId; }
+  public int getChunkSize() { return this.CHUNK_SIZE; }
   public Random getRandom() { return this.random; }
   //==============================================================================================================
 }
