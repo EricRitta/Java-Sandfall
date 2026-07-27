@@ -8,7 +8,7 @@ public class Chunk {
   private static final int FIELDS = 3;
   private static final int CELL_ID = 0;
   private static final int CELL_DEADLINE = 1;
-  private static final int CELL_WAS_MOVED = 2;
+  private static final int CELL_SKIP_THIS_FRAME = 2;
   private static final int NEIGHBOR_GRID_SIZE = 9;
 
   //== "SEMI-CONSTANTS" ==//
@@ -47,9 +47,9 @@ public class Chunk {
   public void setRawCellDeadline(int cx, int cy, int value) {
     data[dataIndex(cx, cy) + CELL_DEADLINE] = value;
   }
-  public void setRawCellWasMoved(int cx, int cy, int value) {
+  public void setRawCellSkipThisFrame(int cx, int cy, int value) {
     if (value == 0 || value == 1) {
-      data[dataIndex(cx, cy) + CELL_WAS_MOVED] = value;
+      data[dataIndex(cx, cy) + CELL_SKIP_THIS_FRAME] = value;
     } else {
       throw new IllegalArgumentException(
         "setRawCellProcessId argument value is different then 0 or 1: (" + value + ")"
@@ -70,8 +70,8 @@ public class Chunk {
   public int getRawCellDeadline(int cx, int cy) {
     return data[dataIndex(cx, cy) + CELL_DEADLINE];
   }
-  public int getRawCellWasMoved(int cx, int cy) {
-    return data[dataIndex(cx, cy) + CELL_WAS_MOVED];
+  public int getRawCellSkipThisFrame(int cx, int cy) {
+    return data[dataIndex(cx, cy) + CELL_SKIP_THIS_FRAME];
   }
 
   //== PRIVATES ==//
@@ -96,9 +96,9 @@ public class Chunk {
 
   // game logic
   private void stepCell(int cx, int cy) {
-    int wasMoved = getRawCellWasMoved(cx, cy);
-    if (wasMoved == 1) {
-      setRawCellWasMoved(cx, cy, 0);
+    int skipThisFrame = getRawCellSkipThisFrame(cx, cy);
+    if (skipThisFrame == 1) {
+      setRawCellSkipThisFrame(cx, cy, 0);
       return;
     }
     Cell cell = getCellById(getRawCell(cx, cy));
@@ -125,49 +125,38 @@ public class Chunk {
   
   //== PUBLICS ==//
   // basic
-  public int getTime() {
-    return WORLD.getTime();
-  }
-
-  public Random getRandom() {
-    return WORLD.getRandom();
-  }
+  public int getTime() { return WORLD.getTime(); }
+  public Random getRandom() { return WORLD.getRandom(); }
 
   // cell logic
-  // setCellIn is stritcly used when moving to a cell
+  public void setCellIn(int cx, int cy, int id, int deadline, int skipThisFrame) {
+    if (skipThisFrame != 1 || skipThisFrame != 0) {  
+      throw new IllegalArgumentException("SkipThisFrame was different than 0 or 1 in setCellIn."); 
+    }
+    if (inBounds(cx, cy)) {
+      int idx = dataIndex(cx, cy);
+      data[idx + CELL_ID] = id;
+      data[idx + CELL_DEADLINE] = deadline;
+      data[idx + CELL_SKIP_THIS_FRAME] = skipThisFrame;
+      holdingRect.makeDirty(cx, cy);
+      return;
+    }
+    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
+    neighbor.setCellIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline, skipThisFrame);
+  }
   public void setCellIn(int cx, int cy, int id, int deadline) {
     if (inBounds(cx, cy)) {
       int idx = dataIndex(cx, cy);
       data[idx + CELL_ID] = id;
       data[idx + CELL_DEADLINE] = deadline;
-      data[idx + CELL_WAS_MOVED] = 1;
+      data[idx + CELL_SKIP_THIS_FRAME] = 1;
       holdingRect.makeDirty(cx, cy);
       return;
     }
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
     if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
     neighbor.setCellIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline);
-    // TODO: fallback to world if x or y doubles the neighbor (128+ or -64+)
-  }
-  public void setCellWasMovedIn(int cx, int cy, int value) {
-    if (inBounds(cx, cy)) {
-      setRawCellWasMoved(cx, cy, value);
-    }
-    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
-    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
-    neighbor.setCellWasMovedIn(translateToNeighbor(cx), translateToNeighbor(cy), value);
-    // TODO: fallback to world if x or y doubles the neighbor (128+ or -64+)
-  }
-
-  public void clearCell(int cx, int cy) {
-    if (inBounds(cx, cy)) {
-      int idx = dataIndex(cx, cy);
-      data[idx + CELL_ID] = 0;
-      data[idx + CELL_DEADLINE] = 0;
-      data[idx + CELL_WAS_MOVED] = 0;
-      holdingRect.makeDirty(cx, cy);
-      return;
-    }
   }
 
   public int getCellIn(int cx, int cy) {
@@ -177,7 +166,6 @@ public class Chunk {
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
     if (neighbor == null) { return World.OUT_OF_WORLD; }
     return neighbor.getCellIn(translateToNeighbor(cx), translateToNeighbor(cy));
-    // TODO: fallback to world if x or y doubles the neighbor (128+ or -64+)
   }
   public int getCellDeadlineIn(int cx, int cy) {
     if (inBounds(cx, cy)) {
@@ -186,30 +174,25 @@ public class Chunk {
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
     if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
     return neighbor.getCellDeadlineIn(translateToNeighbor(cx), translateToNeighbor(cy));
-    // TODO: fallback to world if x or y doubles the neighbor (128+ or -64+)
   }
-  public int getCellWasMovedIn(int cx, int cy) {
+  public int getCellSkipThisFrameIn(int cx, int cy) {
     if (inBounds(cx, cy)) {
-      return getRawCellWasMoved(cx, cy);
+      return getRawCellSkipThisFrame(cx, cy);
     } 
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
     if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
-    return neighbor.getCellWasMovedIn(translateToNeighbor(cx), translateToNeighbor(cy));
-    // TODO: fallback to world if x or y doubles the neighbor (128+ or -64+)
+    return neighbor.getCellSkipThisFrameIn(translateToNeighbor(cx), translateToNeighbor(cy));
   }
 
   // game logic
   boolean step() {
-    //this.processId ^= 1;
     shuffleAndProcess();
     if (processRect.getIsEmpty()) {
-      //this.processId ^= 1;
-      this.isActive = false;
+      setIsActive(false);
       return getIsActive();
     }
-    this.isActive = true;
+    setIsActive(true);
     return getIsActive();
-    //return getProcessId();
   }
   //==============================================================================
 }

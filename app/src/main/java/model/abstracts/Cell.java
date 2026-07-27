@@ -10,12 +10,12 @@ public abstract class Cell {
 
   public int getID() { return this.ID; }
 
-  public boolean step(Chunk c, int cx, int cy) {
+  public boolean step(Chunk chunk, int cx, int cy) {
     boolean changed = false;
     return changed;
   }
 
-  public int getSelfDeadline(Chunk c, int cx, int cy) {
-    return c.getRawCellDeadline(cx, cy);
+  public int getSelfDeadline(Chunk chunk, int cx, int cy) {
+    return chunk.getRawCellDeadline(cx, cy);
   }
 }

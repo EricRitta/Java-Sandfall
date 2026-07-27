@@ -14,7 +14,6 @@ public class World {
 
   // VARIABLES //
   private int time = 0;
-  private int frameId = 0;
 
   private Chunk[] data = new Chunk[BOX_SIZE * BOX_SIZE];
 
@@ -60,7 +59,6 @@ public class World {
 
   // GETTERS //
   public int getTime() { return this.time; }
-  public int getFrameId() { return this.frameId; }
   public int getChunkSize() { return this.CHUNK_SIZE; }
   public Random getRandom() { return this.random; }
   //==============================================================================================================
