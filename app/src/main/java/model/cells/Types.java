@@ -1,6 +1,6 @@
 package model;
 
-public class CellType {
+public final class Types {
   public static final String POWDER = "POWDER";
   public static final String SOLID = "SOLID";
   public static final String LIQUID = "LIQUID";

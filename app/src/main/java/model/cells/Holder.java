@@ -1,11 +1,11 @@
-package model.logic;
+package model.cells;
 
 import java.util.Map;
 import java.util.HashMap;
-import model.cells.*;
 import model.abstracts.Cell;
+import model.cells.classes.*;
 
-public class CellHolder {
+public class Holder {
   @SuppressWarnings("unchecked")
   private static final Class<? extends Cell>[] ALL_CELLS = new Class[] {
     // Sand.class
