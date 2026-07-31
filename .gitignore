@@ -6,3 +6,11 @@ build
 
 # Ignore Kotlin plugin data
 .kotlin
+
+# jdtls trash
+.project
+.settings/
+app/.settings/
+app/bin/
+app/.classpath
+app/.project
