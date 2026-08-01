@@ -1,6 +1,6 @@
-package model;
+package model.cells;
 
-public final class Types {
+public final class CTypes {
   public static final String POWDER = "POWDER";
   public static final String SOLID = "SOLID";
   public static final String LIQUID = "LIQUID";

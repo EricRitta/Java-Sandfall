@@ -1,11 +1,13 @@
 package model.cells;
 
-import java.util.Map;
-import java.util.HashMap;
 import model.abstracts.Cell;
 import model.cells.classes.*;
 
-public class Holder {
+public class CHolder {
+  private static final Cell[] ALL_CELLS = new Cell[] {
+    new Sand(),
+  };
+
   @SuppressWarnings("unchecked")
   private static final Class<? extends Cell>[] ALL_CELLS = new Class[] {
     // Sand.class

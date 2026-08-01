@@ -4,10 +4,10 @@ import model.interfaces.ReactionBehaviour;
 import model.logic.Chunk;
 
 public abstract class Cell {
-  private String TYPE; // use the CellType class to define (CellType.LIQUID)
-  private int ID;
-  private MovementBehaviour[] MOVEMENTS;
-  private ReactionBehaviour[] REACTIONS;
+  protected String TYPE; // use the CellType class to define (CellType.LIQUID)
+  protected int ID;
+  protected MovementBehaviour[] MOVEMENTS;
+  protected ReactionBehaviour[] REACTIONS;
 
   public int getID() { return this.ID; }
   public String getType() { return this.TYPE; }
