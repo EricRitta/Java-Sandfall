@@ -1,6 +1,6 @@
 package model.logic;
 
-import model.logic.CellHolder;
+import model.cells.CHolder;
 import model.logic.DirtyRect;
 import model.abstracts.Cell;
 import java.util.Random;
@@ -43,20 +43,8 @@ public class Chunk {
     NEIGHBORS_GRID[(dy + 1) * NEIGHBOR_GRID_SIZE + (dx + 1)] = neighbor;
   }
 
-  public void setRawCell(int cx, int cy, int value) {
-    data[dataIndex(cx, cy) + CELL_ID] = value; 
-  }
-  public void setRawCellDeadline(int cx, int cy, int value) {
-    data[dataIndex(cx, cy) + CELL_DEADLINE] = value;
-  }
-  public void setRawCellSkipThisFrame(int cx, int cy, int value) {
-    if (value == 0 || value == 1) {
-      data[dataIndex(cx, cy) + CELL_SKIP_THIS_FRAME] = value;
-    } else {
-      throw new IllegalArgumentException(
-        "setRawCellProcessId argument value is different then 0 or 1: (" + value + ")"
-      );
-    }
+  public void setRawDataPoint(int cx, int cy, int pos, int value) {
+    data[dataIndex(cx, cy) + pos] = value;
   }
 
   //== GETTERS ==//
@@ -65,14 +53,8 @@ public class Chunk {
     return NEIGHBORS_GRID[(dy + 1) * NEIGHBOR_GRID_SIZE + (dx + 1)];
   }
 
-  public int getRawCell(int cx, int cy) {
-    return data[dataIndex(cx, cy) + CELL_ID];
-  }
-  public int getRawCellDeadline(int cx, int cy) {
-    return data[dataIndex(cx, cy) + CELL_DEADLINE];
-  }
-  public int getRawCellSkipThisFrame(int cx, int cy) {
-    return data[dataIndex(cx, cy) + CELL_SKIP_THIS_FRAME];
+  public int getRawDataPoint(int cx, int cy, int pos) {
+    return data[dataIndex(cx, cy) + pos];
   }
 
   //== PRIVATES ==//
@@ -97,12 +79,12 @@ public class Chunk {
 
   // game logic
   private void stepCell(int cx, int cy) {
-    int skipThisFrame = getRawCellSkipThisFrame(cx, cy);
-    if (skipThisFrame == 1) {
-      setRawCellSkipThisFrame(cx, cy, 0);
+    int skipThisFrame = getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
+    if (skipThisFrame >= 1) {
+      setRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME, 0);
       return;
     }
-    Cell cell = CellHolder.get(getRawCell(cx, cy));
+    Cell cell = CHolder.get(getRawDataPoint(cx, cy, CELL_ID));
     cell.step(this, cx, cy);
   }
 
@@ -168,7 +150,7 @@ public class Chunk {
 
   public int getCellIn(int cx, int cy) {
     if (inBounds(cx, cy)) {
-      return getRawCell(cx, cy);
+      return getRawDataPoint(cx, cy, CELL_ID);
     } 
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
     if (neighbor == null) { return World.OUT_OF_WORLD; }
@@ -176,7 +158,7 @@ public class Chunk {
   }
   public int getCellDeadlineIn(int cx, int cy) {
     if (inBounds(cx, cy)) {
-      return getRawCellDeadline(cx, cy);
+      return getRawDataPoint(cx, cy, CELL_DEADLINE);
     } 
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
     if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
@@ -184,7 +166,7 @@ public class Chunk {
   }
   public int getCellSkipThisFrameIn(int cx, int cy) {
     if (inBounds(cx, cy)) {
-      return getRawCellSkipThisFrame(cx, cy);
+      return getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
     } 
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
     if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
