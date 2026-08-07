@@ -30,6 +30,6 @@ public abstract class Cell {
   }
 
   public int getSelfDeadline(Chunk chunk, int cx, int cy) {
-    return chunk.getRawCellDeadline(cx, cy);
+    return chunk.getRawDataPoint(cx, cy, 1);
   }
 }

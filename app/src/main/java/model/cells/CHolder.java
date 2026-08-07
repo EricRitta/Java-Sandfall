@@ -4,35 +4,29 @@ import model.abstracts.Cell;
 import model.cells.classes.*;
 
 public class CHolder {
-  private static final Cell[] ALL_CELLS = new Cell[] {
+  private static final Cell[] catalogue = new Cell[] {
     new Sand(),
   };
 
-  @SuppressWarnings("unchecked")
-  private static final Class<? extends Cell>[] ALL_CELLS = new Class[] {
-    // Sand.class
-    // water.class
-    // etc.
-  };
+  private static final int SIZE = 4096;
+  private static final Cell[] ALL_CELLS = new Cell[SIZE];
 
-  private static final Map<Integer, Cell> cast = new HashMap<Integer, Cell>();
-
-  public static void registerCells() {
-    for (Class<? extends Cell> clazz : ALL_CELLS) {
-      try {
-        Cell instance = clazz.getDeclaredConstructor().newInstance();
-        cast.put(instance.getID(), instance);
-      } catch (Exception e) {
-        throw new RuntimeException("Error when trying to instanciate " + clazz.getSimpleName(), e);
+  static {
+    for (Cell c : catalogue) {
+      int cID = c.getID();
+      Cell desiredCellPos = ALL_CELLS[cID];
+      if (desiredCellPos != null) { 
+        throw new IllegalStateException("Desired cell position already taken. ID: " + cID); 
       }
+      ALL_CELLS[cID] = c;
     }
   }
 
   public static Cell get(int id) {
-    Cell cell = cast.get(id);
-    if (cell == null) { 
-      throw new IllegalArgumentException("No cell with id: " + id + " found.");
+    Cell c = ALL_CELLS[id];
+    if (c == null) {
+      throw new IllegalStateException("Desired cell doesn't exist. ID: " + id);
     }
-    return cell;
+    return c;
   }
 }
