@@ -1,6 +1,6 @@
-package model.interfaces;
+package model.behaviours.interfaces;
 import model.logic.Chunk;
-import model.abstracts.Cell;
+import model.cells.Cell;
 
 public interface ReactionBehaviour {
   default boolean step(Cell c, Chunk chunk, int cx, int cy) {

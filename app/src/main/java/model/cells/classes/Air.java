@@ -1,12 +1,12 @@
 package model.cells.classes;
 
+import util.Config;
 import model.logic.Chunk;
-import model.cells.CTypes;
-import model.abstracts.Cell;
+import model.cells.Cell;
 
 public class Air extends Cell {
   public Air() {
-    this.TYPE = CTypes.SOLID;
+    this.TYPE = Config.get("SOLID");
     this.ID = 0;
   }
 

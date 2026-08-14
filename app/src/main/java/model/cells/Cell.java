@@ -1,10 +1,10 @@
-package model.abstracts;
-import model.interfaces.MovementBehaviour;
-import model.interfaces.ReactionBehaviour;
+package model.cells;
+import model.behaviours.interfaces.MovementBehaviour;
+import model.behaviours.interfaces.ReactionBehaviour;
 import model.logic.Chunk;
 
 public abstract class Cell {
-  protected String TYPE; // use the CellType class to define (CellType.LIQUID)
+  protected String TYPE; // use the Config class to define (Config.get("POWDER"))
   protected int ID;
   protected MovementBehaviour[] MOVEMENTS;
   protected ReactionBehaviour[] REACTIONS;

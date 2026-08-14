@@ -2,8 +2,6 @@ package model.logic;
 import java.util.Random;
 
 public class World {
-  public static final int OUT_OF_WORLD = Integer.MIN_VALUE;
-
   //== CONSTANTS ==//
   private final Random random = new Random();
 

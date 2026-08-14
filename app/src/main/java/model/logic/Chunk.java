@@ -1,8 +1,9 @@
 package model.logic;
 
+import util.Config;
 import model.cells.CHolder;
 import model.logic.DirtyRect;
-import model.abstracts.Cell;
+import model.cells.Cell;
 import java.util.Random;
 
 public class Chunk {
@@ -153,7 +154,7 @@ public class Chunk {
       return getRawDataPoint(cx, cy, CELL_ID);
     } 
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
-    if (neighbor == null) { return World.OUT_OF_WORLD; }
+    if (neighbor == null) { return Config.getInt("OUT_OF_WORLD"); }
     return neighbor.getCellIn(translateToNeighbor(cx), translateToNeighbor(cy));
   }
   public int getCellDeadlineIn(int cx, int cy) {
@@ -161,17 +162,17 @@ public class Chunk {
       return getRawDataPoint(cx, cy, CELL_DEADLINE);
     } 
     Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
-    if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
+    if (neighbor == null) { throw new IllegalArgumentException("error"); }
     return neighbor.getCellDeadlineIn(translateToNeighbor(cx), translateToNeighbor(cy));
   }
-  public int getCellSkipThisFrameIn(int cx, int cy) {
-    if (inBounds(cx, cy)) {
-      return getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
-    } 
-    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
-    if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
-    return neighbor.getCellSkipThisFrameIn(translateToNeighbor(cx), translateToNeighbor(cy));
-  }
+  // public int getCellSkipThisFrameIn(int cx, int cy) {
+  //   if (inBounds(cx, cy)) {
+  //     return getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
+  //   } 
+  //   Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+  //   if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
+  //   return neighbor.getCellSkipThisFrameIn(translateToNeighbor(cx), translateToNeighbor(cy));
+  // }
 
   // game logic
   boolean step() {

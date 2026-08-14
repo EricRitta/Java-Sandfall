@@ -1,6 +1,6 @@
 package model.behaviours.movement;
-import model.interfaces.MovementBehaviour;
-import model.abstracts.Cell;
+import model.behaviours.interfaces.MovementBehaviour;
+import model.cells.Cell;
 import model.logic.Chunk;
 
 public class SolidMovement implements MovementBehaviour {

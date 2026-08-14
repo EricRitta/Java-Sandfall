@@ -1,6 +1,6 @@
 package model.cells;
 
-import model.abstracts.Cell;
+import model.cells.Cell;
 import model.cells.classes.*;
 
 public class CHolder {
