@@ -1,5 +1,12 @@
+import model.logic.World;
+import model.logic.Chunk;
+import util.Config;
+
 public class Main {
   public static void main(String[] args) {
-    System.out.println("Main");
+    World w = new World(64, 2);
+    Chunk c = w.getChunkOrNull(0, 0);
+    int t = c.getCellIn(64, 63);
+    System.out.println(Config.outOfBoundString(t));
   }
 }

@@ -12,13 +12,13 @@ public class Chunk {
   private static final int CELL_ID = 0;
   private static final int CELL_DEADLINE = 1;
   private static final int CELL_SKIP_THIS_FRAME = 2;
-  private static final int NEIGHBOR_GRID_SIZE = 9;
+  private static final int NEIGHBOR_GRID_SIZE = 3;
 
   //== "SEMI-CONSTANTS" ==//
   private int INDEX;
   private World WORLD;
   private int CHUNK_SIZE;
-  private Chunk[] NEIGHBORS_GRID = new Chunk[NEIGHBOR_GRID_SIZE];
+  private Chunk[] NEIGHBORS_GRID = new Chunk[NEIGHBOR_GRID_SIZE * NEIGHBOR_GRID_SIZE]; //private after
 
   //== VARIABLES ==//
   private boolean isActive = false;
@@ -40,8 +40,8 @@ public class Chunk {
 
   //== SETTERS ==//
   public void setIsActive(boolean value) { this.isActive = value; }
-  void setNeighbor(int dx, int dy, Chunk neighbor) {
-    NEIGHBORS_GRID[(dy + 1) * NEIGHBOR_GRID_SIZE + (dx + 1)] = neighbor;
+  void setNeighbor(int nx, int ny, Chunk neighbor) {
+    NEIGHBORS_GRID[neighborIndex(nx, ny)] = neighbor;
   }
 
   public void setRawDataPoint(int cx, int cy, int pos, int value) {
@@ -49,13 +49,16 @@ public class Chunk {
   }
 
   //== GETTERS ==//
+  public int getIndex() { return this.INDEX; }
+  public int getNeighborGridSize() { return NEIGHBOR_GRID_SIZE; }
   public boolean getIsActive() { return this.isActive; }
-  public Chunk getNeighbor(int dx, int dy) {
-    return NEIGHBORS_GRID[(dy + 1) * NEIGHBOR_GRID_SIZE + (dx + 1)];
-  }
 
   public int getRawDataPoint(int cx, int cy, int pos) {
     return data[dataIndex(cx, cy) + pos];
+  }
+
+  public Chunk getNeighbor(int nx, int ny) {
+    return NEIGHBORS_GRID[neighborIndex(nx, ny)];
   }
 
   //== PRIVATES ==//
@@ -67,11 +70,15 @@ public class Chunk {
   }
   
   // neighbor
-  private int chunkToNeighborGrid(int cpos) {
-    if (cpos < 0) { return -1; }
-    if (cpos >= CHUNK_SIZE) { return 1; }
-    return 0;
+  private int neighborIndex(int nx, int ny) {
+    return (ny * NEIGHBOR_GRID_SIZE + nx);
   }
+  private int chunkPosToNeighborPos(int cpos) {
+    if (cpos < 0) { return 0; }
+    if (cpos >= CHUNK_SIZE) { return 2; }
+    return 1;
+  }
+
   private int translateToNeighbor(int cpos) {
     if (cpos < 0) { return cpos + CHUNK_SIZE; }
     if (cpos >= CHUNK_SIZE) { return cpos - CHUNK_SIZE; }
@@ -109,7 +116,6 @@ public class Chunk {
   
   //== PUBLICS ==//
   // basic
-  public int getIndex() { return this.INDEX; }
   public int getTime() { return WORLD.getTime(); }
   public Random getRandom() { return WORLD.getRandom(); }
 
@@ -126,7 +132,7 @@ public class Chunk {
       activateCell(cx, cy);
       return;
     }
-    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
     if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
     neighbor.setCellIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline, skipThisFrame);
   }
@@ -139,7 +145,7 @@ public class Chunk {
       activateCell(cx, cy);
       return;
     }
-    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
     if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
     neighbor.setCellIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline);
   }
@@ -153,7 +159,7 @@ public class Chunk {
     if (inBounds(cx, cy)) {
       return getRawDataPoint(cx, cy, CELL_ID);
     } 
-    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
     if (neighbor == null) { return Config.getInt("OUT_OF_WORLD"); }
     return neighbor.getCellIn(translateToNeighbor(cx), translateToNeighbor(cy));
   }
@@ -161,7 +167,7 @@ public class Chunk {
     if (inBounds(cx, cy)) {
       return getRawDataPoint(cx, cy, CELL_DEADLINE);
     } 
-    Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
     if (neighbor == null) { throw new IllegalArgumentException("error"); }
     return neighbor.getCellDeadlineIn(translateToNeighbor(cx), translateToNeighbor(cy));
   }
@@ -169,7 +175,7 @@ public class Chunk {
   //   if (inBounds(cx, cy)) {
   //     return getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
   //   } 
-  //   Chunk neighbor = getNeighbor(chunkToNeighborGrid(cx), chunkToNeighborGrid(cy));
+  //   Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
   //   if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
   //   return neighbor.getCellSkipThisFrameIn(translateToNeighbor(cx), translateToNeighbor(cy));
   // }

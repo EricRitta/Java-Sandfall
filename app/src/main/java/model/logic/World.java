@@ -23,7 +23,7 @@ public class World {
   }
 
   private void generateChunks() {
-    for (int i = 0; i < BOX_SIZE; i++) {
+    for (int i = 0; i < (BOX_SIZE * BOX_SIZE); i++) {
       data[i] = new Chunk(i, this);
     }
   }
@@ -36,14 +36,14 @@ public class World {
   }
   private void linkNeighbor(int wx, int wy) {
     Chunk chunk = data[dataIndex(wx, wy)];
-    for (int dy = -1; dy < 1; dy++) {
-      for (int dx = -1; dx < 1; dx++) {
+    for (int dy = -1; dy <= 1; dy++) {
+      for (int dx = -1; dx <= 1; dx++) {
         Chunk neighbor = getChunkOrNull(wx + dx, wy + dy);
-        chunk.setNeighbor(dx, dy, neighbor);
+        chunk.setNeighbor(1 + dx, 1 + dy, neighbor);
       }
     }
   }
-  private Chunk getChunkOrNull(int wx, int wy) {
+  public Chunk getChunkOrNull(int wx, int wy) {
     if (wx < 0 || wx >= BOX_SIZE || wy < 0 || wy >= BOX_SIZE) {
       return null;
     }
