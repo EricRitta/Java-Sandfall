@@ -163,13 +163,13 @@ public class Chunk {
     if (neighbor == null) { return Config.getInt("OUT_OF_WORLD"); }
     return neighbor.getCellIn(translateToNeighbor(cx), translateToNeighbor(cy));
   }
-  public int getCellDeadlineIn(int cx, int cy) {
+  public int getDeadlineIn(int cx, int cy) {
     if (inBounds(cx, cy)) {
       return getRawDataPoint(cx, cy, CELL_DEADLINE);
     } 
     Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
     if (neighbor == null) { throw new IllegalArgumentException("error"); }
-    return neighbor.getCellDeadlineIn(translateToNeighbor(cx), translateToNeighbor(cy));
+    return neighbor.getDeadlineIn(translateToNeighbor(cx), translateToNeighbor(cy));
   }
   // public int getCellSkipThisFrameIn(int cx, int cy) {
   //   if (inBounds(cx, cy)) {

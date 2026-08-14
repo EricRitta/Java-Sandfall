@@ -19,7 +19,7 @@ public class Config {
   }
 
   public static String get(String key) {
-    return props.getProperty(key);
+    return props.getProperty(key.toUpperCase());
   }
 
   public static int getInt(String key) {

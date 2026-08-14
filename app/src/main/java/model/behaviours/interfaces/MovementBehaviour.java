@@ -9,15 +9,23 @@ public interface MovementBehaviour {
     return success;
   }
 
-  private void moveTo(Cell c, Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
+  default void moveTo(Cell c, Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
     chunk.setCellIn(toCX, toCY, c.getID(), c.getSelfDeadline(chunk, fromCX, fromCY));
     chunk.setCellIn(fromCX, fromCY, 0, 0, 0); // reset to air
   }
 
-  private void swapWith(Cell c, Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
-    int toID = chunk.getCellIn(toCX, toCY);
-    int toDeadline = chunk.getCellDeadlineIn(toCX, toCY);
+  default void swapWith(Cell c, Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
+    int toID = getCellIn(chunk, toCX, toCY);
+    int toDeadline = getDeadlineIn(chunk, toCX, toCY);
     chunk.setCellIn(toCX, toCY, c.getID(), c.getSelfDeadline(chunk, fromCX, fromCY));
     chunk.setCellIn(fromCX, fromCY, toID, toDeadline, 0);
+  }
+
+  // helpers
+  default int getCellIn(Chunk chunk, int cx, int cy) {
+    return chunk.getCellIn(cx, cy);
+  }
+  default int getDeadlineIn(Chunk chunk, int cx, int cy) {
+    return chunk.getDeadlineIn(cx, cy);
   }
 }
