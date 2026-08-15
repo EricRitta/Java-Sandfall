@@ -14,22 +14,17 @@ public abstract class Cell {
 
   public boolean step(Chunk chunk, int cx, int cy) {
     boolean updated = false;
+
     for (ReactionBehaviour r : REACTIONS) {
       boolean success = r.step(this, chunk, cx, cy);
       if (success) { updated = true; }
     }
+
     for (MovementBehaviour m : MOVEMENTS) {
       boolean success = m.step(this, chunk, cx, cy);
       if (success) { updated = true; }
     }
+
     return updated;
-  }
-
-  public void activateSelf(Chunk chunk, int cx, int cy) {
-    chunk.activateCell(cx, cy);
-  }
-
-  public int getSelfDeadline(Chunk chunk, int cx, int cy) {
-    return chunk.getRawDataPoint(cx, cy, 1);
   }
 }

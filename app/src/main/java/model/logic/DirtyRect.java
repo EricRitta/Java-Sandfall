@@ -12,12 +12,13 @@ public class DirtyRect {
     this.CHUNK_SIZE = chunkSize;
   }
  
-  // GETTERS //
+  //== GETTERS ==//
   public int getMaxCX() { return this.maxCX; }
   public int getMaxCY() { return this.maxCY; }
   public int getMinCX() { return this.minCX; }
   public int getMinCY() { return this.minCY; }
   public boolean getIsEmpty() { return this.isEmpty; }
+  //=======================================================================================
 
   // PRIVATES //
   private void expandBounds(int cx, int cy) {
@@ -36,6 +37,7 @@ public class DirtyRect {
     if (value < min) { return min; }
     return value;
   }
+  //=======================================================================================
 
   // PACKAGE PRIVATES //
   void makeDirty(int cx, int cy) {
@@ -58,4 +60,5 @@ public class DirtyRect {
     this.minCY = other.minCY;
     this.isEmpty = other.isEmpty;
   }
+  //=======================================================================================
 }

@@ -8,10 +8,10 @@ import java.util.Random;
 
 public class Chunk {
   //== CONSTANTS ==//
-  private static final int FIELDS = 3;
-  private static final int CELL_ID = 0;
-  private static final int CELL_DEADLINE = 1;
-  private static final int CELL_SKIP_THIS_FRAME = 2;
+  private static final int FIELDS = Config.getInt("CHUNK_FIELDS");
+  private static final int CELL_ID = Config.getInt("CELL_FIELD");
+  private static final int CELL_DEADLINE = Config.getInt("CELL_DEADLINE_FIELD");
+  private static final int CELL_SKIP_THIS_FRAME = Config.getInt("CELL_SKIP_THIS_FRAME_FIELD");
   private static final int NEIGHBOR_GRID_SIZE = 3;
 
   //== "SEMI-CONSTANTS" ==//
@@ -40,52 +40,126 @@ public class Chunk {
 
   //== SETTERS ==//
   public void setIsActive(boolean value) { this.isActive = value; }
-  void setNeighbor(int nx, int ny, Chunk neighbor) {
-    NEIGHBORS_GRID[neighborIndex(nx, ny)] = neighbor;
-  }
-
-  public void setRawDataPoint(int cx, int cy, int pos, int value) {
-    data[dataIndex(cx, cy) + pos] = value;
-  }
+  //=======================================================================================
 
   //== GETTERS ==//
   public int getIndex() { return this.INDEX; }
-  public int getNeighborGridSize() { return NEIGHBOR_GRID_SIZE; }
   public boolean getIsActive() { return this.isActive; }
+  public int getNeighborGridSize() { return NEIGHBOR_GRID_SIZE; }
+  public int getTime() { return WORLD.getTime(); }
+  public Random getRandom() { return WORLD.getRandom(); }
+  //=======================================================================================
 
-  public int getRawDataPoint(int cx, int cy, int pos) {
-    return data[dataIndex(cx, cy) + pos];
+
+
+
+  //== NEIGHBOR ==//
+  private int neighborIndex(int nx, int ny) {
+    return (ny * NEIGHBOR_GRID_SIZE + nx);
   }
 
+  void setNeighbor(int nx, int ny, Chunk neighbor) {
+    NEIGHBORS_GRID[neighborIndex(nx, ny)] = neighbor;
+  }
   public Chunk getNeighbor(int nx, int ny) {
     return NEIGHBORS_GRID[neighborIndex(nx, ny)];
   }
+  
+  private int chunkPosToNeighborPos(int cpos) {
+    if (cpos < 0) { return 0; }
+    if (cpos >= CHUNK_SIZE) { return 2; }
+    return 1;
+  }
+  private int translateToNeighbor(int cpos) {
+    if (cpos < 0) { return cpos + CHUNK_SIZE; }
+    if (cpos >= CHUNK_SIZE) { return cpos - CHUNK_SIZE; }
+    return cpos;
+  }
+  //=======================================================================================
 
-  //== PRIVATES ==//
+
+
+  //== DATA ==//
   private int dataIndex(int cx, int cy) {
     return (cy * CHUNK_SIZE + cx) * FIELDS;
   }
   private boolean inBounds(int cx, int cy) {
     return cx >= 0 && cx < CHUNK_SIZE && cy >= 0 && cy < CHUNK_SIZE;
   }
+
+  private void setRawDataPoint(int cx, int cy, int pos, int value) {
+    data[dataIndex(cx, cy) + pos] = value;
+  }
+  private int getRawDataPoint(int cx, int cy, int pos) {
+    return data[dataIndex(cx, cy) + pos];
+  }
+  //=======================================================================================
   
-  // neighbor
-  private int neighborIndex(int nx, int ny) {
-    return (ny * NEIGHBOR_GRID_SIZE + nx);
+
+
+  //== CELL LOGIC ==//
+  public void activateCell(int cx, int cy) {
+    holdingRect.makeDirty(cx, cy);
+    setIsActive(true);
   }
-  private int chunkPosToNeighborPos(int cpos) {
-    if (cpos < 0) { return 0; }
-    if (cpos >= CHUNK_SIZE) { return 2; }
-    return 1;
+  private boolean verifyPointPos(int pos) {
+    return (pos > 0 && pos < FIELDS);
   }
 
-  private int translateToNeighbor(int cpos) {
-    if (cpos < 0) { return cpos + CHUNK_SIZE; }
-    if (cpos >= CHUNK_SIZE) { return cpos - CHUNK_SIZE; }
-    return cpos;
+  public void setDataPointIn(int cx, int cy, int id, int deadline, int skipThisFrame) {
+    if (skipThisFrame != 1 || skipThisFrame != 0) {  
+      throw new IllegalArgumentException("SkipThisFrame was different than 0 or 1 in setDataPointIn."); 
+    }
+
+    if (inBounds(cx, cy)) {
+      int idx = dataIndex(cx, cy);
+      data[idx + CELL_ID] = id;
+      data[idx + CELL_DEADLINE] = deadline;
+      data[idx + CELL_SKIP_THIS_FRAME] = skipThisFrame;
+      activateCell(cx, cy);
+      return;
+    }
+
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
+    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
+    neighbor.setDataPointIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline, skipThisFrame);
+  }
+  public void setDataPointIn(int cx, int cy, int id, int deadline) {
+    if (inBounds(cx, cy)) {
+      int idx = dataIndex(cx, cy);
+      data[idx + CELL_ID] = id;
+      data[idx + CELL_DEADLINE] = deadline;
+      data[idx + CELL_SKIP_THIS_FRAME] = 1;
+      activateCell(cx, cy);
+      return;
+    }
+
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
+    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
+    neighbor.setDataPointIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline);
+  }
+  public void resetDataPointIn(int cx, int cy) {
+    setDataPointIn(cx, cy, 0, 0, 0);
   }
 
-  // game logic
+  public int getDataPointIn(int cx, int cy, int pos) {
+    if (!verifyPointPos(pos)) { 
+      throw new IllegalArgumentException(pos + " is a invalid position in chunk data."); 
+    }
+
+    if (inBounds(cx, cy)) {
+      return getRawDataPoint(cx, cy, pos);
+    }
+
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
+    if (neighbor == null) { return Config.getInt("OUT_OF_WORLD"); }
+    return neighbor.getDataPointIn(translateToNeighbor(cx), translateToNeighbor(cy), pos);
+  }
+  //=======================================================================================
+
+
+
+  //== GAME LOGIC ==//
   private void stepCell(int cx, int cy) {
     int skipThisFrame = getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
     if (skipThisFrame >= 1) {
@@ -113,74 +187,7 @@ public class Chunk {
       }
     }
   }
-  
-  //== PUBLICS ==//
-  // basic
-  public int getTime() { return WORLD.getTime(); }
-  public Random getRandom() { return WORLD.getRandom(); }
 
-  // cell logic
-  public void setCellIn(int cx, int cy, int id, int deadline, int skipThisFrame) {
-    if (skipThisFrame != 1 || skipThisFrame != 0) {  
-      throw new IllegalArgumentException("SkipThisFrame was different than 0 or 1 in setCellIn."); 
-    }
-    if (inBounds(cx, cy)) {
-      int idx = dataIndex(cx, cy);
-      data[idx + CELL_ID] = id;
-      data[idx + CELL_DEADLINE] = deadline;
-      data[idx + CELL_SKIP_THIS_FRAME] = skipThisFrame;
-      activateCell(cx, cy);
-      return;
-    }
-    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
-    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
-    neighbor.setCellIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline, skipThisFrame);
-  }
-  public void setCellIn(int cx, int cy, int id, int deadline) {
-    if (inBounds(cx, cy)) {
-      int idx = dataIndex(cx, cy);
-      data[idx + CELL_ID] = id;
-      data[idx + CELL_DEADLINE] = deadline;
-      data[idx + CELL_SKIP_THIS_FRAME] = 1;
-      activateCell(cx, cy);
-      return;
-    }
-    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
-    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
-    neighbor.setCellIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline);
-  }
-
-  public void activateCell(int cx, int cy) {
-    holdingRect.makeDirty(cx, cy);
-    setIsActive(true);
-  }
-
-  public int getCellIn(int cx, int cy) {
-    if (inBounds(cx, cy)) {
-      return getRawDataPoint(cx, cy, CELL_ID);
-    } 
-    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
-    if (neighbor == null) { return Config.getInt("OUT_OF_WORLD"); }
-    return neighbor.getCellIn(translateToNeighbor(cx), translateToNeighbor(cy));
-  }
-  public int getDeadlineIn(int cx, int cy) {
-    if (inBounds(cx, cy)) {
-      return getRawDataPoint(cx, cy, CELL_DEADLINE);
-    } 
-    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
-    if (neighbor == null) { throw new IllegalArgumentException("error"); }
-    return neighbor.getDeadlineIn(translateToNeighbor(cx), translateToNeighbor(cy));
-  }
-  // public int getCellSkipThisFrameIn(int cx, int cy) {
-  //   if (inBounds(cx, cy)) {
-  //     return getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
-  //   } 
-  //   Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
-  //   if (neighbor == null) { throw new IllegalArgumentException("erro kkk"); }
-  //   return neighbor.getCellSkipThisFrameIn(translateToNeighbor(cx), translateToNeighbor(cy));
-  // }
-
-  // game logic
   boolean step() {
     shuffleAndProcess();
     if (processRect.getIsEmpty()) {
@@ -190,5 +197,5 @@ public class Chunk {
     setIsActive(true);
     return getIsActive();
   }
-  //==============================================================================
+  //=======================================================================================
 }
