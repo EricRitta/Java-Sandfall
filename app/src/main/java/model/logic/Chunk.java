@@ -103,7 +103,7 @@ public class Chunk {
     setIsActive(true);
   }
   private boolean verifyPointPos(int pos) {
-    return (pos > 0 && pos < FIELDS);
+    return (pos >= 0 && pos < FIELDS);
   }
 
   public void setDataPointIn(int cx, int cy, int id, int deadline, int skipThisFrame) {

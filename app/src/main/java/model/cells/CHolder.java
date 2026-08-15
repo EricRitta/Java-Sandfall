@@ -4,6 +4,7 @@ import model.cells.Cell;
 import model.cells.classes.*;
 
 public class CHolder {
+  // Put new classes inside the catalogue
   private static final Cell[] catalogue = new Cell[] {
     new Sand(),
   };
