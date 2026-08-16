@@ -1,8 +1,6 @@
 package model.logic;
 import java.util.Random;
 
-import model.cells.Cell;
-import model.cells.CHolder;
 import util.Config;
 
 public class World {
