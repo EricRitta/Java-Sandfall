@@ -3,7 +3,6 @@ package model.cells.classes;
 import model.behaviours.interfaces.MovementBehaviour;
 import model.behaviours.movement.SolidMovement;
 
-import model.logic.Chunk;
 import util.Config;
 import model.cells.Cell;
 
@@ -14,10 +13,5 @@ public class Sand extends Cell {
     this.MOVEMENTS = new MovementBehaviour[]{ 
       new SolidMovement() 
     };
-  }
-
-  @Override
-  public boolean step(Chunk chunk, int cx, int cy) {
-    return true;
   }
 }

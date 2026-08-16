@@ -45,8 +45,4 @@ public class Config {
   public static boolean isOutOfWorld(int out) {
     return out == getInt("OUT_OF_WORLD") ? true : false;
   }
-
-  public static String outOfBoundString(int out) {
-    return isOutOfWorld(out) ? "OUT OF BOUNDS" : "IN BOUNDS";
-  }
 }

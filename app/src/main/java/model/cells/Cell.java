@@ -6,8 +6,8 @@ import model.logic.Chunk;
 public abstract class Cell {
   protected String TYPE; // use the Config class to define (Config.get("POWDER"))
   protected int ID; // use the Config class to define (Config.getId("POWDER") + desired id)
-  protected MovementBehaviour[] MOVEMENTS;
-  protected ReactionBehaviour[] REACTIONS;
+  protected MovementBehaviour[] MOVEMENTS = new MovementBehaviour[0];
+  protected ReactionBehaviour[] REACTIONS = new ReactionBehaviour[0];
 
   public int getID() { return this.ID; }
   public String getType() { return this.TYPE; }

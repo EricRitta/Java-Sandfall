@@ -1,6 +1,10 @@
 package model.logic;
 import java.util.Random;
 
+import model.cells.Cell;
+import model.cells.CHolder;
+import util.Config;
+
 public class World {
   //== CONSTANTS ==//
   private final Random random = new Random();
@@ -18,6 +22,9 @@ public class World {
     this.CHUNK_SIZE = cs;
     this.BOX_SIZE = bs;
     data = new Chunk[BOX_SIZE * BOX_SIZE];
+  }
+
+  public void init() {
     generateChunks();
     linkAllNeighbors();
   }
@@ -96,6 +103,16 @@ public class World {
     int cy = getChunkPosByGlobalPos(gy);
     Chunk chunk = getChunkClassByGlobalPos(gx, gy);
     if (chunk != null) { chunk.setDataPointIn(cx, cy, id, deadline, 0); }
+  }
+
+  public int getWorldCellIn(int gx, int gy) {
+    if (gx < 0 || gy < 0) { return 0; }
+    int cx = getChunkPosByGlobalPos(gx);
+    int cy = getChunkPosByGlobalPos(gy);
+    Chunk chunk = getChunkClassByGlobalPos(gx, gy);
+    int cID = chunk.getDataPointIn(cx, cy, Config.getInt("CELL_FIELD"));
+    return cID;
+    //return CHolder.get(cID);
   }
   //=======================================================================================
 

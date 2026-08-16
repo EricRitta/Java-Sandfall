@@ -107,7 +107,7 @@ public class Chunk {
   }
 
   public void setDataPointIn(int cx, int cy, int id, int deadline, int skipThisFrame) {
-    if (skipThisFrame != 1 || skipThisFrame != 0) {  
+    if (skipThisFrame != 1 && skipThisFrame != 0) {  
       throw new IllegalArgumentException("SkipThisFrame was different than 0 or 1 in setDataPointIn."); 
     }
 
@@ -164,9 +164,12 @@ public class Chunk {
     int skipThisFrame = getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
     if (skipThisFrame >= 1) {
       setRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME, 0);
+      activateCell(cx, cy);
       return;
     }
-    Cell cell = CHolder.get(getRawDataPoint(cx, cy, CELL_ID));
+    int cID = getRawDataPoint(cx, cy, CELL_ID);
+    if (cID == 0) { return; } // air
+    Cell cell = CHolder.get(cID);
     cell.step(this, cx, cy);
   }
 
@@ -190,7 +193,7 @@ public class Chunk {
 
   boolean step() {
     shuffleAndProcess();
-    if (processRect.getIsEmpty()) {
+    if (holdingRect.getIsEmpty()) {
       setIsActive(false);
       return getIsActive();
     }
