@@ -2,10 +2,11 @@ package view;
 import static com.raylib.Colors.*;
 import static com.raylib.Raylib.*;
 
+import util.Config;
 import model.logic.World;
 
 public class Movie {
-    private static final int SCALE = 8; // fator de escala tela/mundo
+    private static final int SCALE = Config.getInt("SCREEN_SCALE");
  
     private final int WORLD_WIDTH;
     private final int WORLD_HEIGHT;
@@ -22,7 +23,7 @@ public class Movie {
  
     public void init() {
         InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Test Screen");
-        SetTargetFPS(120);
+        SetTargetFPS(Config.getInt("TARGET_FPS"));
     }
  
     public void step(World w) {
