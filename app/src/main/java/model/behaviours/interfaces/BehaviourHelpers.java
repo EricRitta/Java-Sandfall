@@ -1,6 +1,5 @@
 package model.behaviours.interfaces;
 
-import util.Config;
 import model.logic.Chunk;
 
 public interface BehaviourHelpers {
@@ -17,12 +16,12 @@ public interface BehaviourHelpers {
   
   // CELL GETTERS //
   default int getCellIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Config.getInt("CELL_FIELD"));
+    return chunk.getDataPointIn(cx, cy, Chunk.CELL_ID);
   }
   default int getDeadlineIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Config.getInt("CELL_DEADLINE_FIELD"));
+    return chunk.getDataPointIn(cx, cy, Chunk.CELL_DEADLINE);
   }
   default int getLastMovedIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Config.getInt("CELL_LAST_MOVED_FIELD"));
+    return chunk.getDataPointIn(cx, cy, Chunk.CELL_LAST_MOVED);
   }
 }

@@ -9,11 +9,12 @@ import java.util.Random;
 public class Chunk {
   //== CONSTANTS ==//
   private final Random random = new Random();
-  private static final int FIELDS = Config.getInt("CHUNK_FIELDS");
-  private static final int CELL_ID = Config.getInt("CELL_FIELD");
-  private static final int CELL_DEADLINE = Config.getInt("CELL_DEADLINE_FIELD");
-  private static final int CELL_LAST_MOVED = Config.getInt("CELL_LAST_MOVED_FIELD");
   private static final int NEIGHBOR_GRID_SIZE = 3;
+  public static final int OUT_OF_WORLD = Integer.MIN_VALUE;
+  public static final int FIELDS = 3;
+  public static final int CELL_ID = 0;
+  public static final int CELL_DEADLINE = 1;
+  public static final int CELL_LAST_MOVED = 2;
 
   //== "SEMI-CONSTANTS" ==//
   private int INDEX;
@@ -152,7 +153,7 @@ public class Chunk {
     }
 
     Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
-    if (neighbor == null) { return Config.getInt("OUT_OF_WORLD"); }
+    if (neighbor == null) { return OUT_OF_WORLD; }
     return neighbor.getDataPointIn(translateToNeighbor(cx), translateToNeighbor(cy), pos);
   }
   //=======================================================================================
