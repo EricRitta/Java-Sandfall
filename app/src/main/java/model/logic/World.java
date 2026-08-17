@@ -1,13 +1,21 @@
 package model.logic;
+
 import java.util.Random;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import util.Config;
 
 public class World {
   //== CONSTANTS ==//
   private final Random random = new Random();
+  private final List<Runnable>[] phaseTasks = new List[4];
 
   //== "SEMI-CONSTANTS" ==//
+  private ExecutorService POOL;
   private int CHUNK_SIZE;
   private int BOX_SIZE;
 
@@ -25,6 +33,13 @@ public class World {
   public void init() {
     generateChunks();
     linkAllNeighbors();
+
+    int numThreads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
+    POOL = Executors.newFixedThreadPool(numThreads);
+
+    for (int i = 0; i < 4; i++) {
+      phaseTasks[i] = new ArrayList<>(); 
+    }
   }
 
   //== NEIGHBORS ==//
@@ -117,19 +132,52 @@ public class World {
 
 
   //== GAME LOGIC ==//
-  private void processChunk(int wx, int wy) {
-    Chunk c = getChunk(wx, wy);
-    if (c.getIsActive()) {
-      c.step();
-    }
-  } 
+  private void executeAndWait(List<Runnable> tasks) {
+    if (tasks.isEmpty()) { return; }
 
-  public void step() {
-    for (int wy = 0; wy < BOX_SIZE; wy++) {
-      for (int wx = 0; wx < BOX_SIZE; wx++) {
-        processChunk(wx, wy);
+    List<Future<?>> futures = new ArrayList<>(tasks.size());
+    for (Runnable task : tasks) {
+      futures.add(POOL.submit(task));
+    }
+
+    for (Future<?> f : futures) {
+      try {
+        f.get(); // bloqueia até essa tarefa terminar
+      } catch (Exception e) {
+        throw new RuntimeException("Erro processando chunk em paralelo.", e);
       }
     }
+  }
+  
+  private void processPhase(int phase) {
+    List<Runnable> tasks = phaseTasks[phase];
+    tasks.clear();
+
+    for (int wy = 0; wy < BOX_SIZE; wy++) {
+      for (int wx = 0; wx < BOX_SIZE; wx++) {
+        int chunkPhase = (wx % 2) + (wy % 2) * 2;
+        if (chunkPhase != phase) { continue; }
+
+        Chunk c = getChunk(wx, wy);
+        if (c.getIsActive()) {
+          tasks.add(c::step);
+        }
+      }
+    }
+
+    executeAndWait(tasks);
+  }
+
+  public void step() {
+    for (int phase = 0; phase < 4; phase++) {
+      processPhase(phase);
+    }
+
+    incrementTime();
+  }
+
+  public void shutdown() {
+    if (POOL != null) { POOL.shutdown(); }
   }
   //=======================================================================================
 }

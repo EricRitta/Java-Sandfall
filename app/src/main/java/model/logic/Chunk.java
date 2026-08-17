@@ -8,6 +8,7 @@ import java.util.Random;
 
 public class Chunk {
   //== CONSTANTS ==//
+  private final Random random = new Random();
   private static final int FIELDS = Config.getInt("CHUNK_FIELDS");
   private static final int CELL_ID = Config.getInt("CELL_FIELD");
   private static final int CELL_DEADLINE = Config.getInt("CELL_DEADLINE_FIELD");
@@ -47,7 +48,7 @@ public class Chunk {
   public boolean getIsActive() { return this.isActive; }
   public int getNeighborGridSize() { return NEIGHBOR_GRID_SIZE; }
   public int getTime() { return WORLD.getTime(); }
-  public Random getRandom() { return WORLD.getRandom(); }
+  public Random getRandom() { return this.random; }
   //=======================================================================================
 
 
@@ -185,19 +186,18 @@ public class Chunk {
       int cy = reverseCY ? (processRect.getMaxCY() - (dy - processRect.getMinCY())) : dy;
       for (int dx = processRect.getMinCX(); dx <= processRect.getMaxCX(); dx++) {
         int cx = reverseCX ? (processRect.getMaxCX() - (dx - processRect.getMinCX())) : dx;
-        
+
         stepCell(cx, cy);
       }
     }
   }
 
   boolean step() {
-    shuffleAndProcess();
     if (holdingRect.getIsEmpty()) {
       setIsActive(false);
       return getIsActive();
     }
-    setIsActive(true);
+    shuffleAndProcess();
     return getIsActive();
   }
   //=======================================================================================
