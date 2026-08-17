@@ -1,6 +1,5 @@
 package model.logic;
 
-import util.Config;
 import model.cells.CHolder;
 import model.logic.DirtyRect;
 import model.cells.Cell;
@@ -89,10 +88,10 @@ public class Chunk {
     return cx >= 0 && cx < CHUNK_SIZE && cy >= 0 && cy < CHUNK_SIZE;
   }
 
-  private void setRawDataPoint(int cx, int cy, int pos, int value) {
+  public void setRawDataPoint(int cx, int cy, int pos, int value) {
     data[dataIndex(cx, cy) + pos] = value;
   }
-  private int getRawDataPoint(int cx, int cy, int pos) {
+  public int getRawDataPoint(int cx, int cy, int pos) {
     return data[dataIndex(cx, cy) + pos];
   }
   //=======================================================================================

@@ -5,10 +5,21 @@ import model.logic.Chunk;
 public interface BehaviourHelpers {
   // CELL SETTERS //
   default void setCellIn(Chunk chunk, int cx, int cy, int id, int deadline) {
-    chunk.setDataPointIn(cx, cy, id, deadline);
+    chunk.setDataPointIn(
+      cx,
+      cy,
+      id,
+      deadline
+    );
   }
   default void setCellIn(Chunk chunk, int cx, int cy, int id, int deadline, int lastMoved) {
-    chunk.setDataPointIn(cx, cy, id, deadline, lastMoved);
+    chunk.setDataPointIn(
+      cx, 
+      cy, 
+      id, 
+      deadline, 
+      lastMoved
+    );
   }
   default void resetCellIn(Chunk chunk, int cx, int cy) {
     chunk.resetDataPointIn(cx, cy);

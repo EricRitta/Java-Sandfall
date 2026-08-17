@@ -4,8 +4,8 @@ import model.behaviours.interfaces.ReactionBehaviour;
 import model.logic.Chunk;
 
 public abstract class Cell {
-  protected String TYPE; // use the Config class to define (Config.get("POWDER"))
-  protected int ID; // use the Config class to define (Config.getId("POWDER") + desired id)
+  protected String TYPE; // use the CellType class to define (CellTypes.POWDER)
+  protected int ID; // use the CellType class to define (CellTypes.POWDER_ID + desired id)
   protected MovementBehaviour[] MOVEMENTS = new MovementBehaviour[0];
   protected ReactionBehaviour[] REACTIONS = new ReactionBehaviour[0];
 

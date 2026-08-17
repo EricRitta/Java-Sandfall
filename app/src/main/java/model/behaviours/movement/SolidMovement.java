@@ -9,20 +9,45 @@ public class SolidMovement implements MovementBehaviour {
   public boolean step(Cell c, Chunk chunk, int cx, int cy) {
     boolean sucess = false;
 
-    //under
+    // under
     if (getCellIn(chunk, cx, cy + 1) == 0) {
       moveTo(c, chunk, cx, cy + 1, cx, cy);
       sucess = true;
+      return sucess;
+    }
 
-    // left
-    } else if (getCellIn(chunk, cx - 1, cy + 1) == 0) {
-      moveTo(c, chunk, cx - 1, cy + 1, cx, cy);
-      sucess = true;
+    // verify if sides
+    int cellInLeft = getCellIn(chunk, cx - 1, cy + 1);
+    int cellInRight = getCellIn(chunk, cx + 1, cy + 1);
+
+    // if both sides open, choose random side
+    if (cellInLeft == 0 && cellInRight == 0) {
+      boolean choose = chunk.getRandom().nextBoolean();
+
+      // right
+      if (choose) {
+        moveTo(c, chunk, cx + 1, cy + 1, cx, cy);
+        sucess = true;
+        return sucess;
+
+      // left
+      } else {
+        moveTo(c, chunk, cx - 1, cy + 1, cx, cy);
+        sucess = true;
+        return sucess;
+      }
 
     // right
-    } else if (getCellIn(chunk, cx + 1, cy + 1) == 0) {
+    } else if (cellInRight == 0) {
       moveTo(c, chunk, cx + 1, cy + 1, cx, cy);
       sucess = true;
+      return sucess;
+
+    // left
+    } else if (cellInLeft == 0) {
+      moveTo(c, chunk, cx - 1, cy + 1, cx, cy);
+      sucess = true;
+      return sucess;
     }
 
     return sucess;

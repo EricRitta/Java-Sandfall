@@ -7,14 +7,33 @@ public interface MovementBehaviour extends BehaviourHelpers {
   public boolean step(Cell c, Chunk chunk, int cx, int cy);
 
   default void moveTo(Cell c, Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
-    setCellIn(chunk, toCX, toCY, c.getID(), chunk.getDataPointIn(fromCX, fromCY, Chunk.CELL_DEADLINE));
+    setCellIn(
+      chunk,                                                    // chunk
+      toCX,                                                     // X
+      toCY,                                                     // Y
+      c.getID(),                                                // ID
+      chunk.getDataPointIn(fromCX, fromCY, Chunk.CELL_DEADLINE) // Deadline
+    );
     resetCellIn(chunk, fromCX, fromCY);
   }
 
   default void swapWith(Cell c, Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
     int toID = getCellIn(chunk, toCX, toCY);
     int toDeadline = getDeadlineIn(chunk, toCX, toCY);
-    setCellIn(chunk, toCX, toCY, c.getID(), chunk.getDataPointIn(fromCX, fromCY, Chunk.CELL_DEADLINE));
-    setCellIn(chunk, fromCX, fromCY, toID, toDeadline, 0);
+    setCellIn(
+      chunk,                                                    // chunk
+      toCX,                                                     // X
+      toCY,                                                     // Y
+      c.getID(),                                                // ID
+      chunk.getDataPointIn(fromCX, fromCY, Chunk.CELL_DEADLINE) // Deadline
+    );
+    setCellIn(
+      chunk,        // chunks
+      fromCX,       // X
+      fromCY,       // Y
+      toID,         // ID
+      toDeadline,   // deadline
+      0             // lastMoved
+    );
   }
 }
