@@ -7,8 +7,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import util.Config;
-
 public class World {
   //== CONSTANTS ==//
   private final Random random = new Random();
@@ -123,7 +121,7 @@ public class World {
     int cx = getChunkPosByGlobalPos(gx);
     int cy = getChunkPosByGlobalPos(gy);
     Chunk chunk = getChunkClassByGlobalPos(gx, gy);
-    int cID = chunk.getDataPointIn(cx, cy, Config.getInt("CELL_FIELD"));
+    int cID = chunk.getDataPointIn(cx, cy, Chunk.CELL_ID);
     return cID;
     //return CHolder.get(cID);
   }
