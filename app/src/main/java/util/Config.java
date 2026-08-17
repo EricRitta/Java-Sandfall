@@ -24,7 +24,7 @@ public class Config {
     CONSTANTS.put("CHUNK_FIELDS", "3");
     CONSTANTS.put("CELL_FIELD", "0");
     CONSTANTS.put("CELL_DEADLINE_FIELD", "1");
-    CONSTANTS.put("CELL_SKIP_THIS_FRAME_FIELD", "2");
+    CONSTANTS.put("CELL_LAST_MOVED_FIELD", "2");
   }
 
   public static String get(String key) {

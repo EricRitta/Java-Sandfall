@@ -86,7 +86,7 @@ public class Movie {
     }
 
     public void handleInput(World w, Director d) {
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             Vector2 mousePos = GetMousePosition();
             int worldX = screenToWorld((int) mousePos.x());
             int worldY = screenToWorld((int) mousePos.y());

@@ -8,8 +8,8 @@ public interface BehaviourHelpers {
   default void setCellIn(Chunk chunk, int cx, int cy, int id, int deadline) {
     chunk.setDataPointIn(cx, cy, id, deadline);
   }
-  default void setCellIn(Chunk chunk, int cx, int cy, int id, int deadline, int skipThisFrame) {
-    chunk.setDataPointIn(cx, cy, id, deadline, skipThisFrame);
+  default void setCellIn(Chunk chunk, int cx, int cy, int id, int deadline, int lastMoved) {
+    chunk.setDataPointIn(cx, cy, id, deadline, lastMoved);
   }
   default void resetCellIn(Chunk chunk, int cx, int cy) {
     chunk.resetDataPointIn(cx, cy);
@@ -22,7 +22,7 @@ public interface BehaviourHelpers {
   default int getDeadlineIn(Chunk chunk, int cx, int cy) {
     return chunk.getDataPointIn(cx, cy, Config.getInt("CELL_DEADLINE_FIELD"));
   }
-  default int getSkipThisFrameIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Config.getInt("CELL_SKIP_THIS_FRAME_FIELD"));
+  default int getLastMovedIn(Chunk chunk, int cx, int cy) {
+    return chunk.getDataPointIn(cx, cy, Config.getInt("CELL_LAST_MOVED_FIELD"));
   }
 }

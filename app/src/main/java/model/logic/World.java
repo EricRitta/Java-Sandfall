@@ -20,7 +20,7 @@ public class World {
   private int BOX_SIZE;
 
   //== VARIABLES ==//
-  private int time = 0;
+  private int time = 1;
   private Chunk[] data;
 
   //== CALL METHOD ==//

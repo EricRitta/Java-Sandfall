@@ -12,7 +12,7 @@ public class Chunk {
   private static final int FIELDS = Config.getInt("CHUNK_FIELDS");
   private static final int CELL_ID = Config.getInt("CELL_FIELD");
   private static final int CELL_DEADLINE = Config.getInt("CELL_DEADLINE_FIELD");
-  private static final int CELL_SKIP_THIS_FRAME = Config.getInt("CELL_SKIP_THIS_FRAME_FIELD");
+  private static final int CELL_LAST_MOVED = Config.getInt("CELL_LAST_MOVED_FIELD");
   private static final int NEIGHBOR_GRID_SIZE = 3;
 
   //== "SEMI-CONSTANTS" ==//
@@ -107,30 +107,29 @@ public class Chunk {
     return (pos >= 0 && pos < FIELDS);
   }
 
-  public void setDataPointIn(int cx, int cy, int id, int deadline, int skipThisFrame) {
-    if (skipThisFrame != 1 && skipThisFrame != 0) {  
-      throw new IllegalArgumentException("SkipThisFrame was different than 0 or 1 in setDataPointIn."); 
+  public void setDataPointIn(int cx, int cy, int id, int deadline, int lastMoved) {
+    if (lastMoved < 0) {
+      throw new IllegalArgumentException("Last Moved argument less than 0.");
     }
-
     if (inBounds(cx, cy)) {
       int idx = dataIndex(cx, cy);
       data[idx + CELL_ID] = id;
       data[idx + CELL_DEADLINE] = deadline;
-      data[idx + CELL_SKIP_THIS_FRAME] = skipThisFrame;
+      data[idx + CELL_LAST_MOVED] = lastMoved;
       activateCell(cx, cy);
       return;
     }
 
     Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
     if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
-    neighbor.setDataPointIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline, skipThisFrame);
+    neighbor.setDataPointIn(translateToNeighbor(cx), translateToNeighbor(cy), id, deadline, lastMoved);
   }
   public void setDataPointIn(int cx, int cy, int id, int deadline) {
     if (inBounds(cx, cy)) {
       int idx = dataIndex(cx, cy);
       data[idx + CELL_ID] = id;
       data[idx + CELL_DEADLINE] = deadline;
-      data[idx + CELL_SKIP_THIS_FRAME] = 1;
+      data[idx + CELL_LAST_MOVED] = WORLD.getTime();
       activateCell(cx, cy);
       return;
     }
@@ -162,14 +161,12 @@ public class Chunk {
 
   //== GAME LOGIC ==//
   private void stepCell(int cx, int cy) {
-    int skipThisFrame = getRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME);
-    if (skipThisFrame >= 1) {
-      setRawDataPoint(cx, cy, CELL_SKIP_THIS_FRAME, 0);
-      activateCell(cx, cy);
-      return;
-    }
+    int lastMoved = getRawDataPoint(cx, cy, CELL_LAST_MOVED);
+    if (lastMoved == WORLD.getTime()) { return; }
+
     int cID = getRawDataPoint(cx, cy, CELL_ID);
     if (cID == 0) { return; } // air
+                              //
     Cell cell = CHolder.get(cID);
     cell.step(this, cx, cy);
   }
@@ -179,17 +176,24 @@ public class Chunk {
     holdingRect.clear();
     if (processRect.getIsEmpty()) { return; }
 
-    boolean reverseCX = getRandom().nextBoolean();
-    boolean reverseCY = getRandom().nextBoolean();
-
-    for (int dy = processRect.getMinCY(); dy <= processRect.getMaxCY(); dy++) {
-      int cy = reverseCY ? (processRect.getMaxCY() - (dy - processRect.getMinCY())) : dy;
-      for (int dx = processRect.getMinCX(); dx <= processRect.getMaxCX(); dx++) {
-        int cx = reverseCX ? (processRect.getMaxCX() - (dx - processRect.getMinCX())) : dx;
-
+    for (int cy = processRect.getMinCY(); cy <= processRect.getMaxCY(); cy++) {
+      for (int cx = processRect.getMinCX(); cx <= processRect.getMaxCX(); cx++) {
         stepCell(cx, cy);
       }
     }
+    
+    // TODO: Revist when dealing with water
+    // boolean reverseCX = getRandom().nextBoolean();
+    // boolean reverseCY = getRandom().nextBoolean();
+    //
+    // for (int dy = processRect.getMinCY(); dy <= processRect.getMaxCY(); dy++) {
+    //   int cy = reverseCY ? (processRect.getMaxCY() - (dy - processRect.getMinCY())) : dy;
+    //   for (int dx = processRect.getMinCX(); dx <= processRect.getMaxCX(); dx++) {
+    //     int cx = reverseCX ? (processRect.getMaxCX() - (dx - processRect.getMinCX())) : dx;
+    //
+    //     stepCell(cx, cy);
+    //   }
+    // }
   }
 
   boolean step() {
