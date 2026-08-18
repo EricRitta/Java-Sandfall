@@ -1,7 +1,8 @@
 package model.components.basics;
+import model.components.basics.*;
 import model.logic.Chunk;
 
-public interface Movement {
+public interface Movement extends Getters {
   int getId();
   String getType();
     
@@ -16,17 +17,6 @@ public interface Movement {
     chunk.resetDataPointIn(cx, cy);
   }
   
-  //== GETS ==//
-  default int getCellIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Chunk.CELL_ID);
-  }
-  default int getDeadlineIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Chunk.CELL_DEADLINE);
-  }
-  default int getLastMovedIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Chunk.CELL_LAST_MOVED);
-  }
-
   //== MOVEMENT BASICS ==//
   default void moveTo(Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
     setCellIn(
