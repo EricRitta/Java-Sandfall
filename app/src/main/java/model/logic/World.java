@@ -3,23 +3,26 @@ package model.logic;
 import java.util.Random;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class World {
   //== CONSTANTS ==//
   private final Random random = new Random();
-  private final List<Runnable>[] phaseTasks = new List[4];
 
   //== "SEMI-CONSTANTS" ==//
   private ExecutorService POOL;
+  private int NUM_THREADS;
   private int CHUNK_SIZE;
   private int BOX_SIZE;
 
   //== VARIABLES ==//
   private int time = 1;
   private Chunk[] data;
+
+  @SuppressWarnings("unchecked")
+  private List<Chunk>[] phaseChunks= new List[4];
 
   //== CALL METHOD ==//
   public World(int cs, int bs) {
@@ -32,11 +35,22 @@ public class World {
     generateChunks();
     linkAllNeighbors();
 
-    int numThreads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
-    POOL = Executors.newFixedThreadPool(numThreads);
+    this.NUM_THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
+    POOL = Executors.newFixedThreadPool(NUM_THREADS);
 
+    buildPhaseChunks();
+  }
+
+  private void buildPhaseChunks() {
     for (int i = 0; i < 4; i++) {
-      phaseTasks[i] = new ArrayList<>(); 
+      phaseChunks[i] = new ArrayList<>(); 
+    }
+
+    for (int wy = 0; wy < BOX_SIZE; wy++) {
+      for (int wx = 0; wx < BOX_SIZE; wx++) {
+        int phase = (wx % 2) + (wy % 2) * 2;
+        phaseChunks[phase].add(getChunk(wx, wy));
+      }
     }
   }
 
@@ -130,40 +144,44 @@ public class World {
 
 
   //== GAME LOGIC ==//
-  private void executeAndWait(List<Runnable> tasks) {
-    if (tasks.isEmpty()) { return; }
-
-    List<Future<?>> futures = new ArrayList<>(tasks.size());
-    for (Runnable task : tasks) {
-      futures.add(POOL.submit(task));
-    }
-
-    for (Future<?> f : futures) {
+  private void poolExecute(CountDownLatch l, int start, int end, List<Chunk> chunks) {
+    POOL.execute(() -> {
       try {
-        f.get(); // bloqueia até essa tarefa terminar
-      } catch (Exception e) {
-        throw new RuntimeException("Erro processando chunk em paralelo.", e);
+        for (int i = start; i < end; i++) {
+          Chunk c = chunks.get(i);
+          if (c.getIsActive()) {
+            c.step();
+            System.out.println(Thread.currentThread().getName() + " processando chunk " + i);
+          }
+        }
+      } finally {
+        l.countDown();
       }
-    }
+    });
   }
   
   private void processPhase(int phase) {
-    List<Runnable> tasks = phaseTasks[phase];
-    tasks.clear();
-
-    for (int wy = 0; wy < BOX_SIZE; wy++) {
-      for (int wx = 0; wx < BOX_SIZE; wx++) {
-        int chunkPhase = (wx % 2) + (wy % 2) * 2;
-        if (chunkPhase != phase) { continue; }
-
-        Chunk c = getChunk(wx, wy);
-        if (c.getIsActive()) {
-          tasks.add(c::step);
-        }
-      }
+    List<Chunk> chunks = phaseChunks[phase];
+    int total = chunks.size();
+    if (total == 0) { return; }
+ 
+    int batches = Math.min(NUM_THREADS, total);
+    int batchSize = (total + batches - 1) / batches;
+ 
+    CountDownLatch latch = new CountDownLatch(batches);
+ 
+    for (int b = 0; b < batches; b++) {
+      final int start = b * batchSize;
+      final int end = Math.min(start + batchSize, total);
+      poolExecute(latch, start, end, chunks);
     }
-
-    executeAndWait(tasks);
+ 
+    try {
+      latch.await();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Interrompido esperando fase " + phase + " terminar.", e);
+    }
   }
 
   public void step() {
