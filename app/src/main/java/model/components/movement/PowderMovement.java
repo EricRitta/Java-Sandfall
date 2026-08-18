@@ -1,17 +1,15 @@
-package model.behaviours.movement;
-import model.behaviours.interfaces.MovementBehaviour;
-import model.cells.Cell;
+package model.components.movement;
+
+import model.components.basics.Movement;
 import model.logic.Chunk;
 
-public class SolidMovement implements MovementBehaviour {
-  
-  @Override
-  public boolean step(Cell c, Chunk chunk, int cx, int cy) {
+public interface PowderMovement extends Movement {
+  default boolean tryPowderMovement(Chunk chunk, int cx, int cy) {
     boolean sucess = false;
 
     // under
     if (getCellIn(chunk, cx, cy + 1) == 0) {
-      moveTo(c, chunk, cx, cy + 1, cx, cy);
+      moveTo(chunk, cx, cy + 1, cx, cy);
       sucess = true;
       return sucess;
     }
@@ -26,26 +24,26 @@ public class SolidMovement implements MovementBehaviour {
 
       // right
       if (choose) {
-        moveTo(c, chunk, cx + 1, cy + 1, cx, cy);
+        moveTo(chunk, cx + 1, cy + 1, cx, cy);
         sucess = true;
         return sucess;
 
       // left
       } else {
-        moveTo(c, chunk, cx - 1, cy + 1, cx, cy);
+        moveTo(chunk, cx - 1, cy + 1, cx, cy);
         sucess = true;
         return sucess;
       }
 
     // right
     } else if (cellInRight == 0) {
-      moveTo(c, chunk, cx + 1, cy + 1, cx, cy);
+      moveTo(chunk, cx + 1, cy + 1, cx, cy);
       sucess = true;
       return sucess;
 
     // left
     } else if (cellInLeft == 0) {
-      moveTo(c, chunk, cx - 1, cy + 1, cx, cy);
+      moveTo(chunk, cx - 1, cy + 1, cx, cy);
       sucess = true;
       return sucess;
     }

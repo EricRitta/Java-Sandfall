@@ -1,17 +1,17 @@
 package model.cells.classes;
 
-import model.behaviours.interfaces.MovementBehaviour;
-import model.behaviours.movement.SolidMovement;
-
 import util.CellTypes;
 import model.cells.Cell;
+import model.logic.Chunk;
+import model.components.movement.*;
 
-public class Sand extends Cell {
+public class Sand extends Cell implements PowderMovement {
   public Sand() {
     this.TYPE = CellTypes.POWDER;
     this.ID = CellTypes.POWDER_ID + 1;
-    this.MOVEMENTS = new MovementBehaviour[]{ 
-      new SolidMovement() 
-    };
+  }
+
+  public boolean step(Chunk chunk, int cx, int cy) {
+    return tryPowderMovement(chunk, cx, cy);
   }
 }
