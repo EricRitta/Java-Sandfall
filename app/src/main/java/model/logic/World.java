@@ -89,7 +89,10 @@ public class World {
 
 
   //== SETTERS ==//
-  public void incrementTime() { time++; }
+  public void incrementTime() { 
+    this.time++;
+    if (this.time == 0) { this.time = 1; }
+  }
   //=======================================================================================
 
   //== GETTERS ==//
