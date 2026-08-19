@@ -151,7 +151,7 @@ public class World {
           Chunk c = chunks.get(i);
           if (c.getIsActive()) {
             c.step();
-            System.out.println(Thread.currentThread().getName() + " processando chunk " + i);
+            // System.out.println(Thread.currentThread().getName() + " processando chunk " + i);
           }
         }
       } finally {
@@ -194,6 +194,14 @@ public class World {
 
   public void shutdown() {
     if (POOL != null) { POOL.shutdown(); }
+  }
+  //=======================================================================================
+  
+  
+  
+  // DEBUGGING //
+  private void printAllActiveChunks() {
+
   }
   //=======================================================================================
 }
