@@ -162,10 +162,13 @@ public class Chunk {
   //== GAME LOGIC ==//
   private void stepCell(int cx, int cy) {
     int lastMoved = getRawDataPoint(cx, cy, CELL_LAST_MOVED);
-    if (lastMoved == WORLD.getTime()) { return; }
+    if (lastMoved == WORLD.getTime()) { 
+      activateCell(cx, cy);
+      return; 
+    }
 
     int cID = getRawDataPoint(cx, cy, CELL_ID);
-    if (cID == 0) { activateCell(cx, cy); return;  } // air
+    if (cID == 0) {  return;  } // air
 
     Cell cell = CHolder.get(cID);
     cell.step(this, cx, cy);
