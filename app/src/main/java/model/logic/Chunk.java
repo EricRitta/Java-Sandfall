@@ -16,13 +16,14 @@ public class Chunk {
   public static final int CELL_LAST_MOVED = 2;
 
   //== "SEMI-CONSTANTS" ==//
-  private int INDEX;
-  private World WORLD;
-  private int CHUNK_SIZE;
+  private final int INDEX;
+  private final World WORLD;
+  private final int CHUNK_SIZE;
+  private int PHASE = -1; 
   private Chunk[] NEIGHBORS_GRID = new Chunk[NEIGHBOR_GRID_SIZE * NEIGHBOR_GRID_SIZE]; //private after
 
   //== VARIABLES ==//
-  private boolean isActive = false;
+  private boolean active = false;
   
   private int[] data;
   private DirtyRect holdingRect;
@@ -40,17 +41,21 @@ public class Chunk {
   }
 
   //== SETTERS ==//
-  public void setIsActive(boolean value) { this.isActive = value; }
+  public void setActive(boolean value) { this.active = value; }
+  public void setPhase(int value) { 
+    if (this.PHASE > -1) { return; }
+    this.PHASE = value; 
+  } 
   //=======================================================================================
 
   //== GETTERS ==//
   public int getIndex() { return this.INDEX; }
-  public boolean getIsActive() { return this.isActive; }
+  public int getPhase() { return this.PHASE; }
+  public boolean isActive() { return this.active; }
   public int getNeighborGridSize() { return NEIGHBOR_GRID_SIZE; }
   public int getTime() { return WORLD.getTime(); }
   public Random getRandom() { return this.random; }
   //=======================================================================================
-
 
 
 
@@ -99,9 +104,17 @@ public class Chunk {
 
 
   //== CELL LOGIC ==//
+  // TODO: make this activate neighbors
   public void activateCell(int cx, int cy) {
-    holdingRect.makeDirty(cx, cy);
-    setIsActive(true);
+    if (inBounds(cx, cy)) {
+      holdingRect.makeDirty(cx, cy);
+      setActive(true);
+      return;
+    }
+
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
+    if (neighbor == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
+    neighbor.activateCell(translateToNeighbor(cx), translateToNeighbor(cy));
   }
   private boolean verifyPointPos(int pos) {
     return (pos >= 0 && pos < FIELDS);
@@ -199,13 +212,12 @@ public class Chunk {
     // }
   }
 
-  boolean step() {
+  void step() {
     if (holdingRect.getIsEmpty()) {
-      setIsActive(false);
-      return getIsActive();
+      setActive(false);
+      return;
     }
     shuffleAndProcess();
-    return getIsActive();
   }
   //=======================================================================================
 }

@@ -79,7 +79,7 @@ public class Movie {
     private Color getColorForId(int id) {
         switch (id) {
             case 1: return YELLOW;  // sand, exemplo
-            case 2: return BLUE;    // water, exemplo
+            case 201: return BLUE;    // water, exemplo
             case 3: return DARKGRAY; // metal, exemplo
             default: return MAGENTA; // cor "erro", fácil de notar se algum id não mapeado aparecer
         }
@@ -108,7 +108,7 @@ public class Movie {
     }
  
     private void onWorldClick(World w, int gx, int gy) {
-      w.setWorldCellIn(gx, gy, 1, 0);
+      w.setWorldCellIn(gx, gy, 201, 0);
     }
  
     private int screenToWorld(int screenCoord) {

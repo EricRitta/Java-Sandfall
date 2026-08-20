@@ -28,7 +28,7 @@ public class World {
   public World(int cs, int bs) {
     this.CHUNK_SIZE = cs;
     this.BOX_SIZE = bs;
-    data = new Chunk[BOX_SIZE * BOX_SIZE];
+    this.data = new Chunk[BOX_SIZE * BOX_SIZE];
   }
 
   public void init() {
@@ -49,7 +49,9 @@ public class World {
     for (int wy = 0; wy < BOX_SIZE; wy++) {
       for (int wx = 0; wx < BOX_SIZE; wx++) {
         int phase = (wx % 2) + (wy % 2) * 2;
-        phaseChunks[phase].add(getChunk(wx, wy));
+        Chunk c = getChunk(wx, wy);
+        c.setPhase(phase);
+        this.phaseChunks[phase].add(c);
       }
     }
   }
@@ -152,9 +154,8 @@ public class World {
       try {
         for (int i = start; i < end; i++) {
           Chunk c = chunks.get(i);
-          if (c.getIsActive()) {
+          if (c.isActive()) {
             c.step();
-            // System.out.println(Thread.currentThread().getName() + " processando chunk " + i);
           }
         }
       } finally {
@@ -203,8 +204,11 @@ public class World {
   
   
   // DEBUGGING //
-  private void printAllActiveChunks() {
-
-  }
+  // private void printAllActiveChunks() {
+  //   for (Chunk c : activeChunks) {
+  //     if (c == null) { continue; }
+  //     System.out.println(c.getIndex());
+  //   }
+  // }
   //=======================================================================================
 }

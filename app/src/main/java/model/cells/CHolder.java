@@ -8,6 +8,7 @@ public class CHolder {
   private static final Cell[] catalogue = new Cell[] {
     new Air(),
     new Sand(),
+    new Water(),
   };
 
   private static final int SIZE = 4096;

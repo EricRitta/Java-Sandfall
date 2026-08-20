@@ -2,7 +2,7 @@ package model.components.basics;
 import model.components.basics.*;
 import model.logic.Chunk;
 
-public interface Movement extends Getters {
+public interface Movement extends CellGetters {
   int getId();
   String getType();
     

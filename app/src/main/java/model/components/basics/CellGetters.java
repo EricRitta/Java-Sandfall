@@ -2,7 +2,7 @@ package model.components.basics;
 
 import model.logic.Chunk;
 
-public interface Getters {
+public interface CellGetters {
   //== GETS ==//
   default int getCellIn(Chunk chunk, int cx, int cy) {
     return chunk.getDataPointIn(cx, cy, Chunk.CELL_ID);
