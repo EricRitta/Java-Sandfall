@@ -51,7 +51,7 @@ public class World {
         int phase = (wx % 2) + (wy % 2) * 2;
         Chunk c = getChunk(wx, wy);
         c.setPhase(phase);
-        this.phaseChunks[phase].add(c);
+        phaseChunks[phase].add(c);
       }
     }
   }
