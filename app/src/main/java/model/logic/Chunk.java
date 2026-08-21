@@ -192,24 +192,24 @@ public class Chunk {
     holdingRect.clear();
     if (processRect.getIsEmpty()) { return; }
 
-    for (int cy = processRect.getMinCY(); cy <= processRect.getMaxCY(); cy++) {
-      for (int cx = processRect.getMinCX(); cx <= processRect.getMaxCX(); cx++) {
-        stepCell(cx, cy);
-      }
-    }
-    
-    // TODO: Revist when dealing with water
-    // boolean reverseCX = getRandom().nextBoolean();
-    // boolean reverseCY = getRandom().nextBoolean();
-    //
-    // for (int dy = processRect.getMinCY(); dy <= processRect.getMaxCY(); dy++) {
-    //   int cy = reverseCY ? (processRect.getMaxCY() - (dy - processRect.getMinCY())) : dy;
-    //   for (int dx = processRect.getMinCX(); dx <= processRect.getMaxCX(); dx++) {
-    //     int cx = reverseCX ? (processRect.getMaxCX() - (dx - processRect.getMinCX())) : dx;
-    //
+    // for (int cy = processRect.getMinCY(); cy <= processRect.getMaxCY(); cy++) {
+    //   for (int cx = processRect.getMinCX(); cx <= processRect.getMaxCX(); cx++) {
     //     stepCell(cx, cy);
     //   }
     // }
+    
+    // TODO: Revist when dealing with water
+    boolean reverseCX = getRandom().nextBoolean();
+    boolean reverseCY = getRandom().nextBoolean();
+
+    for (int dy = processRect.getMinCY(); dy <= processRect.getMaxCY(); dy++) {
+      int cy = reverseCY ? (processRect.getMaxCY() - (dy - processRect.getMinCY())) : dy;
+      for (int dx = processRect.getMinCX(); dx <= processRect.getMaxCX(); dx++) {
+        int cx = reverseCX ? (processRect.getMaxCX() - (dx - processRect.getMinCX())) : dx;
+
+        stepCell(cx, cy);
+      }
+    }
   }
 
   void step() {
