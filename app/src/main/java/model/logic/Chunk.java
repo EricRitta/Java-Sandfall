@@ -2,8 +2,11 @@ package model.logic;
 
 import model.cells.CHolder;
 import model.logic.DirtyRect;
+import model.logic.PendingChange;
 import model.cells.Cell;
 import java.util.Random;
+
+import org.bytedeco.javacpp.tools.ParserException;
 
 public class Chunk {
   //== CONSTANTS ==//
@@ -28,6 +31,9 @@ public class Chunk {
   private int[] data;
   private DirtyRect holdingRect;
   private DirtyRect processRect;
+
+  protected List<PendingChange> inbox = new ArrayList<>();
+  protected List<PendingChange> outbox = new ArrayList<>();
 
   //== CALL METHOD ==//
   public Chunk(int i, World w) {
@@ -103,8 +109,39 @@ public class Chunk {
   
 
 
+  //== INBOX AND OUTBOX ==//
+  private void inboxAdd(PendingChange p) {
+    this.inbox.add(p);
+  }
+  private void outboxAdd(PendingChange p) {
+    this.outbox.add(p);
+  }
+
   //== CELL LOGIC ==//
-  // TODO: make this activate neighbors
+  public void requestChange(int cx, int cy, int id, int dl, boolean lmbool) {
+    int lm = lmbool ? 1 : 0;
+    if (inBounds(cx, cy)) {
+      PendingChange p = new PendingChange(this, cx, cy, id, dl, lm);
+      inboxAdd(p);
+      return;
+    }
+
+    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
+    if (neighbor == null) { 
+      throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); 
+    }
+    PendingChange p = new PendingChange(
+      neighbor, 
+      translateToNeighbor(cx), 
+      translateToNeighbor(cy), 
+      id, 
+      dl, 
+      lm
+    );
+    outboxAdd(p);
+  }
+
+
   public void activateCell(int cx, int cy) {
     if (inBounds(cx, cy)) {
       holdingRect.makeDirty(cx, cy);
