@@ -2,11 +2,9 @@ package model.logic;
 
 import model.cells.CHolder;
 import model.logic.DirtyRect;
-import model.logic.PendingChange;
+import model.logic.Intent;
 import model.cells.Cell;
 import java.util.Random;
-
-import org.bytedeco.javacpp.tools.ParserException;
 
 public class Chunk {
   //== CONSTANTS ==//
@@ -32,8 +30,8 @@ public class Chunk {
   private DirtyRect holdingRect;
   private DirtyRect processRect;
 
-  protected List<PendingChange> inbox = new ArrayList<>();
-  protected List<PendingChange> outbox = new ArrayList<>();
+  protected List<Intent> incoming = new ArrayList<>();
+  protected List<Intent> outgoing = new ArrayList<>();
 
   //== CALL METHOD ==//
   public Chunk(int i, World w) {
