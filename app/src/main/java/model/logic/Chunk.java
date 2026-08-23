@@ -16,7 +16,6 @@ public class Chunk {
   public static final int CELL_ID = 0;
   public static final int CELL_DEADLINE = 1;
   public static final int CELL_LAST_MOVED = 2;
-  public static final int NEIGHBOR_GRID_SIZE = 3;
   public static final int OUT_OF_WORLD = Integer.MIN_VALUE;
 
   //== CONSTANTS ==//
@@ -26,13 +25,14 @@ public class Chunk {
   private final int INDEX;
   private final World WORLD;
   private final int CHUNK_SIZE;
-  private final Chunk[] NEIGHBORS_GRID = new Chunk[NEIGHBOR_GRID_SIZE * NEIGHBOR_GRID_SIZE];
+  private final int BOX_SIZE;
 
   private final int[] DATA;
-  private final DirtyRect RECT;
+  public final DirtyRect RECT; //private after
   final List<Intent> INCOMING = new ArrayList<>();
   final List<Intent> OUTGOING = new ArrayList<>();
-  final List<Intent> PENDING_RESETS = new ArrayList<>();
+  final List<Intent> INCOMING_RESETS = new ArrayList<>();
+  final List<Intent> OUTGOING_RESETS = new ArrayList<>();
 
   //== VARIABLES ==//
   private boolean active = false;
@@ -42,6 +42,7 @@ public class Chunk {
     this.INDEX = i;
     this.WORLD = w;
     this.CHUNK_SIZE = WORLD.getChunkSize();
+    this.BOX_SIZE = WORLD.getBoxSize();
 
     this.DATA = new int[CHUNK_SIZE * CHUNK_SIZE * FIELDS];
     this.RECT = new DirtyRect(CHUNK_SIZE);
@@ -54,42 +55,30 @@ public class Chunk {
   //== GETTERS ==//
   public int getIndex() { return this.INDEX; }
   public boolean isActive() { return this.active; }
-  public int getNeighborGridSize() { return NEIGHBOR_GRID_SIZE; }
   public int getTime() { return WORLD.getTime(); }
   public Random getRandom() { return this.RANDOM; }
   //=======================================================================================
 
 
 
-  //== NEIGHBOR ==//
-  private int neighborIndex(int nx, int ny) {
-    return (ny * NEIGHBOR_GRID_SIZE + nx);
+  //== COORDS ==//
+  public int getGlobalX(int chunkIndex, int cPos) {
+    int wx = chunkIndex % BOX_SIZE;
+    return wx * CHUNK_SIZE + cPos;
+  }
+  public int getGlobalY(int chunkIndex, int cPos) {
+    int wy = chunkIndex / BOX_SIZE;
+    return wy * CHUNK_SIZE + cPos;
   }
 
-  void setNeighbor(int nx, int ny, Chunk neighbor) {
-    NEIGHBORS_GRID[neighborIndex(nx, ny)] = neighbor;
-  }
-  Chunk getNeighbor(int nx, int ny) {
-    return NEIGHBORS_GRID[neighborIndex(nx, ny)];
-  }
-  
-  private int chunkPosToNeighborPos(int cpos) {
-    if (cpos < 0) { return 0; }
-    if (cpos >= CHUNK_SIZE) { return 2; }
-    return 1;
-  }
-  private int translateToNeighbor(int cpos) {
-    if (cpos < 0) { return cpos + CHUNK_SIZE; }
-    if (cpos >= CHUNK_SIZE) { return cpos - CHUNK_SIZE; }
-    return cpos;
+  public int getLocalPos(int gPos) {
+    return gPos % CHUNK_SIZE;
   }
 
-  private Chunk getAvailableNeighbor(int cx, int cy) {
-    int nx = chunkPosToNeighborPos(cx);
-    int ny = chunkPosToNeighborPos(cy);
-    Chunk n = getNeighbor(nx, ny);
-    if (n == null) { throw new IllegalArgumentException("Cell out of bounds completely in: " + cx + ", " + cy + "."); }
-    return n;
+  public Chunk getChunkByGlobal(int x, int y) {
+    Chunk c = WORLD.getChunk(x, y);
+    if (c == null) { throw new IllegalArgumentException("Chunk out of bounds in: {" + x + ", " + y + "}"); }
+    return c;
   }
   //=======================================================================================
 
@@ -119,79 +108,67 @@ public class Chunk {
     RECT.makeDirty(cx, cy);
     setActive(true);
   }
-
-  void registerResetIntent(Intent i) {
-    synchronized (PENDING_RESETS) {
-      PENDING_RESETS.add(i);
-    }
-  }
-  void registerIntent(Intent intent, int toCX, int toCY) {
-    if (inBounds(toCX, toCY)) {
-      intent.TO_CHUNK = this;
-      intent.TO_CX = toCX;
-      intent.TO_CY = toCY;
-      return;
-    }
-
-    Chunk neighbor = getAvailableNeighbor(toCX, toCY);
-    neighbor.registerIntent(intent, translateToNeighbor(toCX), translateToNeighbor(toCY));
-  }
   //==============================================
 
   // PUBLICS
-  public void registerActivation(int cx, int cy) {
-    Intent intent = new Intent();
-    intent.ACTIVATION_ONLY = true;
-    intent.TO_CX = cx;
-    intent.TO_CY = cy;
-    INCOMING.add(intent);
+  public void registerActivation(int fromX, int fromY, int toX, int toY) {
+    String where = "to";
+    if (fromX == toX && fromY == toY) { where = "from"; }
+    this.registerIntent(true, where, fromX, fromY, toX, toY, 0, 0, 0, 0);
   }
 
   public void registerIntent(
-      int fromCX, int fromCY, 
-      int toCX, int toCY, 
+      boolean activeOnly, String where,
+      int fromX, int fromY, 
+      int toX, int toY, 
       int fromId, int fromDl, int toId, int toDl
       )
   {
+    if (!where.equals("to") && !where.equals("from")) {
+      throw new IllegalArgumentException("Where is incorrecly defined in: {" + where + "}");
+    }
+
+    if (!inBounds(getLocalPos(fromX), getLocalPos(fromY))) {
+      throw new IllegalArgumentException("Cell out of bounds in: {" + fromX + ", " + fromY + "}");
+    }
+
     Intent intent = new Intent();
+    intent.ACTIVATION_ONLY = activeOnly;
+    intent.WHERE = where;
+
     intent.FROM_CHUNK = this;
-    intent.FROM_CX = fromCX;
-    intent.FROM_CY = fromCY;
+    intent.FROM_X = fromX;
+    intent.FROM_Y = fromY;
     intent.FROM_ID = fromId;
     intent.FROM_DEADLINE = fromDl;
 
+    intent.TO_CHUNK = getChunkByGlobal(toX, toY);
+    intent.TO_X = toX;
+    intent.TO_Y = toY;
     intent.TO_ID = toId;
     intent.TO_DEADLINE = toDl;
 
-    if (inBounds(toCX, toCY)) {
-      intent.TO_CHUNK = this;
-      intent.TO_CX = toCX;
-      intent.TO_CY = toCY;
-
+    if (inBounds(getLocalPos(toX), getLocalPos(toY))) {
       INCOMING.add(intent);
-      return;
-    }
-
-    Chunk neighbor = getAvailableNeighbor(toCX, toCY);
-    neighbor.registerIntent(intent, translateToNeighbor(toCX), translateToNeighbor(toCY));
-
-    if (intent.TO_CHUNK != null) {
+    } else {
       OUTGOING.add(intent);
     }
   }
 
-  public int getDataPointIn(int cx, int cy, int pos) {
+  public int getDataIn(int x, int y, int pos) {
     if (!(pos >= 0 && pos < FIELDS)) { 
       throw new IllegalArgumentException(pos + " is a invalid position in chunk data."); 
     }
 
+    int cx = getLocalPos(x);
+    int cy = getLocalPos(y);
     if (inBounds(cx, cy)) {
       return getRawDataPoint(cx, cy, pos);
     }
 
-    Chunk neighbor = getNeighbor(chunkPosToNeighborPos(cx), chunkPosToNeighborPos(cy));
-    if (neighbor == null) { return OUT_OF_WORLD; }
-    return neighbor.getDataPointIn(translateToNeighbor(cx), translateToNeighbor(cy), pos);
+    Chunk valid = WORLD.getChunk(x, y);
+    if (valid == null) { return OUT_OF_WORLD; }
+    return valid.getDataIn(x, y, pos);
   }
   //==============================================
   //
@@ -200,45 +177,72 @@ public class Chunk {
 
 
   //== GAME LOGIC ==//
-  private void applyIntent(Intent i, boolean reseting) {
-    if (i.ACTIVATION_ONLY) {
-      activateCell(i.TO_CX, i.TO_CY);
-      return;
+  private void applyIntent(Intent i) {
+    switch (i.WHERE) {
+      case "to":
+
+        int tcx = getLocalPos(i.TO_X);
+        int tcy = getLocalPos(i.TO_Y);
+        if (i.ACTIVATION_ONLY) {
+          activateCell(tcx, tcy);
+          i.WHERE = "from";
+          if (i.FROM_CHUNK != this) {
+            OUTGOING_RESETS.add(i);
+          }
+          break;
+        }
+
+        int defaultidx = dataIndex(tcx, tcy);
+        DATA[defaultidx + CELL_ID] = i.TO_ID;
+        DATA[defaultidx + CELL_DEADLINE] = i.TO_DEADLINE;
+        DATA[defaultidx + CELL_LAST_MOVED] = (i.TO_ID != 0) ? WORLD.getTime() : 0;
+        activateCell(tcx, tcy);
+
+        if (i.FROM_CHUNK == null) { break; }
+        i.WHERE = "from";
+        if (i.FROM_CHUNK == this) {
+          INCOMING_RESETS.add(i);
+        } else {
+          OUTGOING_RESETS.add(i);
+        }
+
+        break;
+      case "from":
+
+        int fcx = getLocalPos(i.FROM_X);
+        int fcy = getLocalPos(i.FROM_Y);
+        if (i.ACTIVATION_ONLY) {
+          activateCell(fcx, fcy);
+          break;
+        }
+
+        int resetidx = dataIndex(fcx, fcy);
+        DATA[resetidx + CELL_ID] = i.FROM_ID;
+        DATA[resetidx + CELL_DEADLINE] = i.FROM_DEADLINE;
+        DATA[resetidx + CELL_LAST_MOVED] = (i.FROM_ID != 0) ? WORLD.getTime() : 0;
+        activateCell(fcx, fcy);
+
+        break;
+      default:
+        throw new IllegalArgumentException("Intent was not initialized corrctly: " + i.WHERE);
     }
-
-    int idxCX = reseting ? i.FROM_CX : i.TO_CX;
-    int idxCY = reseting ? i.FROM_CY : i.TO_CY;
-    int id = reseting ? i.FROM_ID : i.TO_ID;
-    int dl = reseting ? i.FROM_DEADLINE : i.TO_DEADLINE;
-
-    int idx = dataIndex(idxCX, idxCY);
-    DATA[idx + CELL_ID] = id;
-    DATA[idx + CELL_DEADLINE] = dl;
-    DATA[idx + CELL_LAST_MOVED] = (id != 0) ? WORLD.getTime() : 0;
-    activateCell(idxCX, idxCY);
-
-    if (i.FROM_CHUNK == null) { return; }
-    if (i.FROM_CHUNK == this) {
-      i.FROM_CHUNK = null;
-      applyIntent(i, true);
-      return;
-    }
-
-    i.FROM_CHUNK.registerResetIntent(i);
   }
 
   private void stepCell(int cx, int cy) {
+    int x = getGlobalX(getIndex(), cx);
+    int y = getGlobalY(getIndex(), cy);
+
     int cID = getRawDataPoint(cx, cy, CELL_ID);
     if (cID == 0) { return; } // air
                               
     int lastMoved = getRawDataPoint(cx, cy, CELL_LAST_MOVED);
     if (lastMoved == WORLD.getTime()) {
-      registerActivation(cx, cy);
+      registerActivation(x, y, x, y);
       return; 
     }
 
     Cell cell = CHolder.get(cID);
-    cell.step(this, cx, cy);
+    cell.step(this, x, y);
   }
 
   // REAL CALLERS
@@ -266,18 +270,52 @@ public class Chunk {
   }
 
   void commit() {
-    for (Intent i : INCOMING) {
-      if (i.ACTIVATION_ONLY) { applyIntent(i, false); continue; }
-      if (i.TO_CHUNK.getRawDataPoint(i.TO_CX, i.TO_CY, CELL_LAST_MOVED) == getTime()) { continue; }
-      applyIntent(i, false);
+    for (Intent intent : INCOMING) {
+      if (intent.ACTIVATION_ONLY) {
+        applyIntent(intent);
+        continue;
+      }
+
+      if (intent.TO_CHUNK.getRawDataPoint(getLocalPos(intent.TO_X), getLocalPos(intent.TO_Y), CELL_LAST_MOVED) == getTime()) { continue; }
+      applyIntent(intent);
     }
   }
-    
+
+  // void commit() {
+  //   for (int i = INCOMING.size() - 1; i > 0; i--) {
+  //     int j = getRandom().nextInt(i + 1);
+  //     Intent tmp = INCOMING.get(i);
+  //     INCOMING.set(i, INCOMING.get(j));
+  //     INCOMING.set(j, tmp);
+  //
+  //     Intent current = INCOMING.get(i);
+  //
+  //     if (current.ACTIVATION_ONLY) { 
+  //       applyIntent(current, false);
+  //       continue;
+  //     }
+  //     if (current.TO_CHUNK.getRawDataPoint(current.TO_CX, current.TO_CY, CELL_LAST_MOVED) == getTime()) { continue; }
+  //
+  //     applyIntent(current, false);
+  //   }
+  //
+  //   if (!INCOMING.isEmpty()) {
+  //     Intent first = INCOMING.get(0);
+  //
+  //     if (first.ACTIVATION_ONLY) {
+  //       applyIntent(first, false);
+  //     } else if (first.TO_CHUNK.getRawDataPoint(first.TO_CX, first.TO_CY, CELL_LAST_MOVED) != getTime()) {
+  //       applyIntent(first, false);
+  //     }
+  //   }
+  // }
+
   void applyResets() {
-    for (Intent i : PENDING_RESETS) {
-      applyIntent(i, true);
+    for (Intent i : INCOMING_RESETS) {
+      applyIntent(i);
     }
-    PENDING_RESETS.clear();
+    INCOMING_RESETS.clear();
+    OUTGOING_RESETS.clear();
   }
   //=======================================================================================
 }

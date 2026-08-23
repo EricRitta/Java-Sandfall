@@ -3,6 +3,7 @@ import static com.raylib.Colors.*;
 import static com.raylib.Raylib.*;
 
 import util.Config;
+import model.logic.Chunk;
 import model.logic.World;
 import controller.Director;
 
@@ -25,6 +26,10 @@ public class Movie {
       this.CHUNK_SIZE = Config.getInt("CHUNK_SIZE"); // ajusta a chave se for diferente no seu Config
     }
  
+    public float getDt() {
+      return GetFrameTime();
+    }
+
     public void init() {
         InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Test Screen");
         SetTargetFPS(Config.getInt("TARGET_FPS"));
@@ -36,9 +41,33 @@ public class Movie {
         ClearBackground(BLACK);
         renderWorld(w);
         renderChunkBorders(); // desenhado por cima, depois das células
+        renderDirtyRects(w);
+        DrawText("FPS: " + GetFPS(), 10, 10, 20, WHITE);
         EndDrawing();
     }
  
+    private void renderDirtyRects(World w) {
+        for (Chunk chunk : w.DATA) { // ajusta pro nome real do campo/getter de chunks no World
+            if (chunk == null) { continue; }
+            if (chunk.RECT.getIsEmpty()) { continue; } // ajusta se RECT tiver um getter em vez de ser público direto
+
+            int chunkOriginGX = (chunk.getIndex() % w.getBoxSize()) * CHUNK_SIZE;
+            int chunkOriginGY = (chunk.getIndex() / w.getBoxSize()) * CHUNK_SIZE;
+
+            int rectMinGX = chunkOriginGX + chunk.RECT.getMinCX();
+            int rectMinGY = chunkOriginGY + chunk.RECT.getMinCY();
+            int rectMaxGX = chunkOriginGX + chunk.RECT.getMaxCX();
+            int rectMaxGY = chunkOriginGY + chunk.RECT.getMaxCY();
+
+            int screenX = rectMinGX * SCALE;
+            int screenY = rectMinGY * SCALE;
+            int screenW = (rectMaxGX - rectMinGX + 1) * SCALE;
+            int screenH = (rectMaxGY - rectMinGY + 1) * SCALE;
+
+            DrawRectangleLines(screenX, screenY, screenW, screenH, RED);
+        }
+    }
+
     public boolean shouldClose() {
         return WindowShouldClose();
     }
@@ -50,7 +79,7 @@ public class Movie {
     private void renderWorld(World w) {
         for (int gy = 0; gy < WORLD_HEIGHT; gy++) {
             for (int gx = 0; gx < WORLD_WIDTH; gx++) {
-                int id = w.getWorldCellIn(gx, gy);
+                int id = w.getChunkDataIn(gx, gy, Chunk.CELL_ID);
  
                 if (id == 0) { continue; }
  
@@ -108,7 +137,19 @@ public class Movie {
     }
  
     private void onWorldClick(World w, int gx, int gy) {
-      w.setWorldCellIn(gx, gy, 201, 0);
+      int radius = 10; // raio do brush
+      int centerX = gx;
+      int centerY = gy;
+
+      for (int y = centerY - radius; y <= centerY + radius; y++) {
+          for (int x = centerX - radius; x <= centerX + radius; x++) {
+              int dx = x - centerX;
+              int dy = y - centerY;
+              if (dx*dx + dy*dy <= radius*radius) {
+                  w.setWorldCellIn(x, y, 1, 0);
+              }
+          }
+      }
     }
  
     private int screenToWorld(int screenCoord) {

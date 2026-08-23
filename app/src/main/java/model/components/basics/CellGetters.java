@@ -4,13 +4,13 @@ import model.logic.Chunk;
 
 public interface CellGetters {
   //== GETS ==//
-  default int getCellIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Chunk.CELL_ID);
+  default int getCellIn(Chunk chunk, int x, int y) {
+    return chunk.getDataIn(x, y, Chunk.CELL_ID);
   }
-  default int getDeadlineIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Chunk.CELL_DEADLINE);
+  default int getDeadlineIn(Chunk chunk, int x, int y) {
+    return chunk.getDataIn(x, y, Chunk.CELL_DEADLINE);
   }
-  default int getLastMovedIn(Chunk chunk, int cx, int cy) {
-    return chunk.getDataPointIn(cx, cy, Chunk.CELL_LAST_MOVED);
+  default int getLastMovedIn(Chunk chunk, int x, int y) {
+    return chunk.getDataIn(x, y, Chunk.CELL_LAST_MOVED);
   }
 }

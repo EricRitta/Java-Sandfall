@@ -13,7 +13,7 @@ public class World {
   private final int NUM_THREADS;
   private final ExecutorService POOL;
 
-  private final Chunk[] DATA;
+  public final Chunk[] DATA; // private after
   private final int CHUNK_SIZE;
   private final int BOX_SIZE;
   private final int DATA_SIZE;
@@ -34,38 +34,6 @@ public class World {
 
   public void init() {
     generateChunks();
-    linkAllNeighbors();
-  }
-
-  //== NEIGHBORS ==//
-  public Chunk getChunk(int wx, int wy) {
-    if (wx < 0 || wx >= BOX_SIZE || wy < 0 || wy >= BOX_SIZE) {
-      return null;
-    }
-    return DATA[dataIndex(wx, wy)];
-  }
-
-  private void generateChunks() {
-    for (int i = 0; i < (BOX_SIZE * BOX_SIZE); i++) {
-      DATA[i] = new Chunk(i, this);
-    }
-  }
-
-  private void linkNeighbors(int wx, int wy) {
-    Chunk chunk = DATA[dataIndex(wx, wy)];
-    for (int dy = -1; dy <= 1; dy++) {
-      for (int dx = -1; dx <= 1; dx++) {
-        Chunk neighbor = getChunk(wx + dx, wy + dy);
-        chunk.setNeighbor(1 + dx, 1 + dy, neighbor);
-      }
-    }
-  }
-  private void linkAllNeighbors() {
-    for (int wy = 0; wy < BOX_SIZE; wy++) {
-      for (int wx = 0; wx < BOX_SIZE; wx++) {
-        linkNeighbors(wx, wy);
-      }
-    }
   }
   //=======================================================================================
 
@@ -95,25 +63,38 @@ public class World {
   private int dataIndex(int wx, int wy) {
     return (wy * BOX_SIZE + wx);
   }
+
+  public Chunk getRawChunk(int wx, int wy) {
+    if (wx < 0 || wx >= BOX_SIZE || wy < 0 || wy >= BOX_SIZE) {
+      return null;
+    }
+    return DATA[dataIndex(wx, wy)];
+  }
+
+  private void generateChunks() {
+    for (int i = 0; i < (BOX_SIZE * BOX_SIZE); i++) {
+      DATA[i] = new Chunk(i, this);
+    }
+  }
   //=======================================================================================
   
 
 
   //== CHUNK ==//
-  public int getChunkPosByGlobalPos(int g) {
-    return g % CHUNK_SIZE;
+  public int getLocalPos(int gPos) {
+    return gPos % CHUNK_SIZE;
   }
-  public Chunk getChunkClassByGlobalPos(int gx, int gy) {
-    int wx = gx / CHUNK_SIZE;
-    int wy = gy / CHUNK_SIZE;
-    return getChunk(wx, wy);
+  public Chunk getChunk(int x, int y) {
+    int wx = x / CHUNK_SIZE;
+    int wy = y / CHUNK_SIZE;
+    return getRawChunk(wx, wy);
   }
 
   public void setWorldCellIn(int gx, int gy, int id, int deadline) {
     if (gx < 0 || gy < 0) { return; }
-    int cx = getChunkPosByGlobalPos(gx);
-    int cy = getChunkPosByGlobalPos(gy);
-    Chunk chunk = getChunkClassByGlobalPos(gx, gy);
+    int cx = getLocalPos(gx);
+    int cy = getLocalPos(gy);
+    Chunk chunk = getChunk(gx, gy);
     if (chunk != null) {
       chunk.setRawDataPoint(cx, cy, Chunk.CELL_ID, id);
       chunk.setRawDataPoint(cx, cy, Chunk.CELL_DEADLINE, deadline);
@@ -121,17 +102,14 @@ public class World {
       chunk.activateCell(cx, cy);
     }
   }
-
-  public int getWorldCellIn(int gx, int gy) {
-    if (gx < 0 || gy < 0) { return 0; }
-    int cx = getChunkPosByGlobalPos(gx);
-    int cy = getChunkPosByGlobalPos(gy);
-    Chunk chunk = getChunkClassByGlobalPos(gx, gy);
-    int cID = chunk.getDataPointIn(cx, cy, Chunk.CELL_ID);
-    return cID;
-  }
   //=======================================================================================
 
+
+  //== CELL LOGIC ==//
+  public int getChunkDataIn(int x, int y, int pos) {
+    Chunk c = getChunk(x, y);
+    return c.getDataIn(getLocalPos(x), getLocalPos(y), pos);
+  }
 
 
   //== GAME LOGIC ==//
@@ -144,7 +122,15 @@ public class World {
     }
   }
 
-  private void parallelForEach(Consumer<Chunk> action) {
+  private void distributeResets() {
+    for (Chunk origin : DATA) {
+      for (Intent intent : origin.OUTGOING_RESETS) {
+        intent.FROM_CHUNK.INCOMING_RESETS.add(intent);
+      }
+    }
+  }
+
+  private void parallelForEach(Consumer<Chunk> action) throws RuntimeException {
     int total = getDataSize();
     int batches = Math.min(NUM_THREADS, total);
     int batchSize = (total + batches - 1) / batches;
@@ -178,6 +164,7 @@ public class World {
     parallelForEach(Chunk::process); // process phase: process cells position and set incoming and outgoing intentions
     distributeIntents(); // distribution phase: distrubute outgoing intentions to incoming intentions.
     parallelForEach(Chunk::commit); // commit phase: commit incoming intentions and register reset intentions.
+    distributeResets();
     parallelForEach(Chunk::applyResets); // reset phase: commit reset intentions.
     incrementTime();
   }

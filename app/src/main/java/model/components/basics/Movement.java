@@ -7,59 +7,68 @@ public interface Movement extends CellGetters {
   int getGravity();
   int getId();
   String getType();
-    
+  
+  //== SETS ==//
+  default void activatePos(Chunk chunk, int fromX, int fromY, int toX, int toY) {
+    chunk.registerActivation(fromX, fromY, toX, toY);
+  }
+
   //== MOVEMENT BASICS ==//
-  default void moveTo(Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
+  default void moveTo(Chunk chunk, int toX, int toY, int fromX, int fromY) {
     chunk.registerIntent(
-      fromCX,
-      fromCY,
-      toCX,
-      toCY,
+      false,
+      "to",
+      fromX,
+      fromY,
+      toX,
+      toY,
       0, 
       0,
       getId(),
-      getLastMovedIn(chunk, fromCX, fromCY)
+      getLastMovedIn(chunk, fromX, fromY)
     );
   }
-  default void swapWith(Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
+  default void swapWith(Chunk chunk, int toX, int toY, int fromX, int fromY) {
     chunk.registerIntent(
-      fromCX,
-      fromCY,
-      toCX,
-      toCY,
-      getCellIn(chunk, toCX, toCY), 
-      getDeadlineIn(chunk, toCX, toCY),
+      false,
+      "to",
+      fromX,
+      fromY,
+      toX,
+      toY,
+      getCellIn(chunk, toX, toY), 
+      getDeadlineIn(chunk, toX, toY),
       getId(),
-      getLastMovedIn(chunk, fromCX, fromCY)
+      getLastMovedIn(chunk, fromX, fromY)
     );
   }
 
   //== MOVEMENT ADVANCED ==//
-  default boolean disperseTo(Chunk chunk, int fromCX, int fromCY, int direction) {
-    int toCX = fromCX;
-    int toCY = fromCY;
+  default boolean disperseTo(Chunk chunk, int fromX, int fromY, int direction) {
+    int toX = fromX;
+    int toY = fromY;
 
     for (int i = 1; i <= getDispersionRate(); i++) {
-      int checkCX = fromCX + (direction * i);
+      int checkX = fromX + (direction * i);
 
-      if (getCellIn(chunk, checkCX, fromCY + 1) == 0) {
-        toCX = checkCX;
-        toCY = fromCY + 1;
-        chunk.registerActivation(toCX, toCY);
+      if (getCellIn(chunk, checkX, fromY + 1) == 0) {
+        toX = checkX;
+        toY = fromY + 1;
+        activatePos(chunk, fromX, fromY, toX, toY);
         break;
       }
 
-      if (getCellIn(chunk, checkCX, fromCY) == 0) {
-        toCX = checkCX;
-        toCY = fromCY;
-        chunk.registerActivation(toCX, toCY);
+      if (getCellIn(chunk, checkX, fromY) == 0) {
+        toX = checkX;
+        toY = fromY;
+        activatePos(chunk, fromX, fromY, toX, toY);
       } else {
         break;
       }
     }
 
-    if (toCX == fromCX && toCY == fromCY) { return false; }
-    moveTo(chunk, toCX, toCY, fromCX, fromCY);
+    if (toX == fromX && toY == fromY) { return false; }
+    moveTo(chunk, toX, toY, fromX, fromY);
     return true;
   }
 
@@ -72,7 +81,7 @@ public interface Movement extends CellGetters {
 
       if (getCellIn(chunk, fromCX, checkCY) == 0) {
         toCY = checkCY;
-        chunk.registerActivation(fromCX, toCY);
+        activatePos(chunk, fromCX, fromCY, fromCX, toCY);
       } else {
         break;
       }
