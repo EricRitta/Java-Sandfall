@@ -35,7 +35,7 @@ public class Movie {
         BeginDrawing();
         ClearBackground(BLACK);
         renderWorld(w);
-        //renderChunkBorders(); // desenhado por cima, depois das células
+        renderChunkBorders(); // desenhado por cima, depois das células
         EndDrawing();
     }
  

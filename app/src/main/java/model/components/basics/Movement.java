@@ -8,44 +8,29 @@ public interface Movement extends CellGetters {
   int getId();
   String getType();
     
-  //== SETS ==//
-  private void setCellIn(Chunk chunk, int cx, int cy, int id, int dl, boolean lmbool) {
-    chunk.requestChange(cx, cy, id, dl, lmbool);
-  }
-  private void resetCellIn(Chunk chunk, int cx, int cy) {
-    chunk.requestChange(cx, cy, 0, 0, false);
-  }
-  
   //== MOVEMENT BASICS ==//
   default void moveTo(Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
-    setCellIn(
-      chunk,                                                     // chunk
-      toCX,                                                      // X
-      toCY,                                                      // Y
-      getId(),                                                   // ID
-      chunk.getDataPointIn(fromCX, fromCY, Chunk.CELL_DEADLINE), // Deadline
-      true                                                       // Last Moved
+    chunk.registerIntent(
+      fromCX,
+      fromCY,
+      toCX,
+      toCY,
+      0, 
+      0,
+      getId(),
+      getLastMovedIn(chunk, fromCX, fromCY)
     );
-    resetCellIn(chunk, fromCX, fromCY);
   }
   default void swapWith(Chunk chunk, int toCX, int toCY, int fromCX, int fromCY) {
-    int toID = getCellIn(chunk, toCX, toCY);
-    int toDeadline = getDeadlineIn(chunk, toCX, toCY);
-    setCellIn(
-      chunk,                                                     // chunk
-      toCX,                                                      // X
-      toCY,                                                      // Y
-      getId(),                                                   // ID
-      chunk.getDataPointIn(fromCX, fromCY, Chunk.CELL_DEADLINE), // Deadline
-      true                                                       // Last Moved
-    );
-    setCellIn(
-      chunk,            // chunks
-      fromCX,           // X
-      fromCY,           // Y
-      toID,             // ID
-      toDeadline,       // deadline
-      false             // lastMoved
+    chunk.registerIntent(
+      fromCX,
+      fromCY,
+      toCX,
+      toCY,
+      getCellIn(chunk, toCX, toCY), 
+      getDeadlineIn(chunk, toCX, toCY),
+      getId(),
+      getLastMovedIn(chunk, fromCX, fromCY)
     );
   }
 
@@ -60,14 +45,14 @@ public interface Movement extends CellGetters {
       if (getCellIn(chunk, checkCX, fromCY + 1) == 0) {
         toCX = checkCX;
         toCY = fromCY + 1;
-        chunk.activateCell(toCX, toCY);
+        chunk.registerActivation(toCX, toCY);
         break;
       }
 
       if (getCellIn(chunk, checkCX, fromCY) == 0) {
         toCX = checkCX;
         toCY = fromCY;
-        chunk.activateCell(toCX, toCY);
+        chunk.registerActivation(toCX, toCY);
       } else {
         break;
       }
@@ -87,7 +72,7 @@ public interface Movement extends CellGetters {
 
       if (getCellIn(chunk, fromCX, checkCY) == 0) {
         toCY = checkCY;
-        chunk.activateCell(fromCX, toCY);
+        chunk.registerActivation(fromCX, toCY);
       } else {
         break;
       }

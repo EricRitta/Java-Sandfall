@@ -52,13 +52,5 @@ public class DirtyRect {
     minCY = Integer.MAX_VALUE;
     isEmpty = true;
   }
-
-  void copyFrom(DirtyRect other) {
-    this.maxCX = other.maxCX;
-    this.maxCY = other.maxCY;
-    this.minCX = other.minCX;
-    this.minCY = other.minCY;
-    this.isEmpty = other.isEmpty;
-  }
   //=======================================================================================
 }
