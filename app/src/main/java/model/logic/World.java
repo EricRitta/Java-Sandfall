@@ -30,7 +30,6 @@ public class World {
 
     this.NUM_THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
     this.POOL = Executors.newFixedThreadPool(NUM_THREADS);
-    this.BATCH_SIZE = 
   }
 
   public void init() {
@@ -176,10 +175,10 @@ public class World {
   }
 
   public void step() {
-    parallelForEach(Chunk::process);
-    distributeIntents();
-    parallelForEach(Chunk::commit);
-    parallelForEach(Chunk::applyResets);
+    parallelForEach(Chunk::process); // process phase: process cells position and set incoming and outgoing intentions
+    distributeIntents(); // distribution phase: distrubute outgoing intentions to incoming intentions.
+    parallelForEach(Chunk::commit); // commit phase: commit incoming intentions and register reset intentions.
+    parallelForEach(Chunk::applyResets); // reset phase: commit reset intentions.
     incrementTime();
   }
 
