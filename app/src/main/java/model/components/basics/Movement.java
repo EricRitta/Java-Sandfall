@@ -14,32 +14,32 @@ public interface Movement extends CellGetters {
   }
 
   //== MOVEMENT BASICS ==//
-  default void moveTo(Chunk chunk, int toX, int toY, int fromX, int fromY) {
+  default void moveTo(Chunk chunk, int fromCX, int fromCY, int toCX, int toCY) {
     chunk.registerIntent(
       false,
       "to",
-      fromX,
-      fromY,
-      toX,
-      toY,
+      chunk.getGlobalX(fromCX),
+      chunk.getGlobalY(fromCY),
+      chunk.getGlobalX(toCX),
+      chunk.getGlobalY(toCY),
       0, 
       0,
       getId(),
-      getLastMovedIn(chunk, fromX, fromY)
+      getLastMovedIn(chunk, fromCX, fromCY)
     );
   }
-  default void swapWith(Chunk chunk, int toX, int toY, int fromX, int fromY) {
+  default void swapWith(Chunk chunk, int fromCX, int fromCY, int toCX, int toCY) {
     chunk.registerIntent(
       false,
       "to",
-      fromX,
-      fromY,
-      toX,
-      toY,
-      getCellIn(chunk, toX, toY), 
-      getDeadlineIn(chunk, toX, toY),
+      chunk.getGlobalX(fromCX),
+      chunk.getGlobalY(fromCY),
+      chunk.getGlobalX(toCX),
+      chunk.getGlobalY(toCY),
+      getCellIn(chunk, toCX, toCY), 
+      getDeadlineIn(chunk, toCX, toCY),
       getId(),
-      getLastMovedIn(chunk, fromX, fromY)
+      getLastMovedIn(chunk, fromCX, fromCY)
     );
   }
 

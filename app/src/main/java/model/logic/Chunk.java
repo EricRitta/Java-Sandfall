@@ -61,29 +61,6 @@ public class Chunk {
 
 
 
-  //== COORDS ==//
-  public int getGlobalX(int chunkIndex, int cPos) {
-    int wx = chunkIndex % BOX_SIZE;
-    return wx * CHUNK_SIZE + cPos;
-  }
-  public int getGlobalY(int chunkIndex, int cPos) {
-    int wy = chunkIndex / BOX_SIZE;
-    return wy * CHUNK_SIZE + cPos;
-  }
-
-  public int getLocalPos(int gPos) {
-    return gPos % CHUNK_SIZE;
-  }
-
-  public Chunk getChunkByGlobal(int x, int y) {
-    Chunk c = WORLD.getChunk(x, y);
-    if (c == null) { throw new IllegalArgumentException("Chunk out of bounds in: {" + x + ", " + y + "}"); }
-    return c;
-  }
-  //=======================================================================================
-
-
-
   //== DATA ==//
   private int dataIndex(int cx, int cy) {
     return (cy * CHUNK_SIZE + cx) * FIELDS;
@@ -92,14 +69,32 @@ public class Chunk {
     return cx >= 0 && cx < CHUNK_SIZE && cy >= 0 && cy < CHUNK_SIZE;
   }
 
-  public void setRawDataPoint(int cx, int cy, int pos, int value) {
+  void setRawData(int cx, int cy, int pos, int value) {
     DATA[dataIndex(cx, cy) + pos] = value;
   }
-  public int getRawDataPoint(int cx, int cy, int pos) {
+  int getRawData(int cx, int cy, int pos) {
     return DATA[dataIndex(cx, cy) + pos];
   }
   //=======================================================================================
   
+
+
+  //== COORDS ==//
+  public int getGlobalX(int cx) {
+    return WORLD.getGlobalX(getIndex(), cx);
+  }
+  public int getGlobalY(int cy) {
+    return WORLD.getGlobalY(getIndex(), cy);
+  }
+
+  public int getLocalX(int x) {
+    return WORLD.getLocalPos(x);
+  }
+  public int getLocalY(int y) {
+    return WORLD.getLocalPos(y);
+  }
+  //=======================================================================================
+
 
 
   //== CELL LOGIC ==//
@@ -110,11 +105,11 @@ public class Chunk {
   }
   //==============================================
 
-  // PUBLICS
+  // REGISTRATION
   public void registerActivation(int fromX, int fromY, int toX, int toY) {
     String where = "to";
     if (fromX == toX && fromY == toY) { where = "from"; }
-    this.registerIntent(true, where, fromX, fromY, toX, toY, 0, 0, 0, 0);
+    registerIntent(true, where, fromX, fromY, toX, toY, 0, 0, 0, 0);
   }
 
   public void registerIntent(
@@ -128,7 +123,7 @@ public class Chunk {
       throw new IllegalArgumentException("Where is incorrecly defined in: {" + where + "}");
     }
 
-    if (!inBounds(getLocalPos(fromX), getLocalPos(fromY))) {
+    if (!inBounds(getLocalX(fromX), getLocalY(fromY))) {
       throw new IllegalArgumentException("Cell out of bounds in: {" + fromX + ", " + fromY + "}");
     }
 
@@ -148,27 +143,40 @@ public class Chunk {
     intent.TO_ID = toId;
     intent.TO_DEADLINE = toDl;
 
-    if (inBounds(getLocalPos(toX), getLocalPos(toY))) {
+    if (intent.TO_CHUNK == this) {
       INCOMING.add(intent);
     } else {
       OUTGOING.add(intent);
     }
   }
 
-  public int getDataIn(int x, int y, int pos) {
+  // GETTING
+  public int getDataIn(int cx, int cy, int pos) {
     if (!(pos >= 0 && pos < FIELDS)) { 
       throw new IllegalArgumentException(pos + " is a invalid position in chunk data."); 
     }
 
-    int cx = getLocalPos(x);
-    int cy = getLocalPos(y);
-    if (inBounds(cx, cy)) {
-      return getRawDataPoint(cx, cy, pos);
+    if (!inBounds(cx, cy)) {
+      return OUT_OF_WORLD;
     }
 
-    Chunk valid = WORLD.getChunk(x, y);
-    if (valid == null) { return OUT_OF_WORLD; }
-    return valid.getDataIn(x, y, pos);
+    return getRawData(cx, cy, pos);
+  }
+
+  public int getDataOut(int x, int y, int pos) {
+    return WORLD.getChunkData(x, y, pos);
+  }
+
+  public int getChunkData(int cx, int cy, int pos) {
+    int data = getDataIn(cx, cy, pos);
+    if (data != OUT_OF_WORLD) { return data; }
+    return getDataOut(getGlobalX(cx), getGlobalY(cy), pos);
+  }
+
+  public Chunk getChunkByGlobal(int x, int y) {
+    Chunk c = WORLD.getChunk(x, y);
+    if (c == null) { throw new IllegalArgumentException("Chunk out of bounds in: {" + x + ", " + y + "}"); }
+    return c;
   }
   //==============================================
   //
@@ -181,8 +189,8 @@ public class Chunk {
     switch (i.WHERE) {
       case "to":
 
-        int tcx = getLocalPos(i.TO_X);
-        int tcy = getLocalPos(i.TO_Y);
+        int tcx = getLocalX(i.TO_X);
+        int tcy = getLocalY(i.TO_Y);
         if (i.ACTIVATION_ONLY) {
           activateCell(tcx, tcy);
           i.WHERE = "from";
@@ -209,8 +217,8 @@ public class Chunk {
         break;
       case "from":
 
-        int fcx = getLocalPos(i.FROM_X);
-        int fcy = getLocalPos(i.FROM_Y);
+        int fcx = getLocalX(i.FROM_X);
+        int fcy = getLocalY(i.FROM_Y);
         if (i.ACTIVATION_ONLY) {
           activateCell(fcx, fcy);
           break;
@@ -229,24 +237,26 @@ public class Chunk {
   }
 
   private void stepCell(int cx, int cy) {
-    int x = getGlobalX(getIndex(), cx);
-    int y = getGlobalY(getIndex(), cy);
+    int x = getGlobalX(cx);
+    int y = getGlobalY(cy);
 
-    int cID = getRawDataPoint(cx, cy, CELL_ID);
+    int cID = getRawData(cx, cy, CELL_ID);
     if (cID == 0) { return; } // air
                               
-    int lastMoved = getRawDataPoint(cx, cy, CELL_LAST_MOVED);
+    int lastMoved = getRawData(cx, cy, CELL_LAST_MOVED);
     if (lastMoved == WORLD.getTime()) {
       registerActivation(x, y, x, y);
       return; 
     }
 
     Cell cell = CHolder.get(cID);
-    cell.step(this, x, y);
+    cell.step(this, cx, cy);
   }
 
   // REAL CALLERS
   void process() {
+    INCOMING_RESETS.clear();
+    OUTGOING_RESETS.clear();
     INCOMING.clear();
     OUTGOING.clear();
     if (RECT.getIsEmpty()) { 
@@ -276,7 +286,7 @@ public class Chunk {
         continue;
       }
 
-      if (intent.TO_CHUNK.getRawDataPoint(getLocalPos(intent.TO_X), getLocalPos(intent.TO_Y), CELL_LAST_MOVED) == getTime()) { continue; }
+      if (getRawData(getLocalX(intent.TO_X), getLocalY(intent.TO_Y), CELL_LAST_MOVED) == getTime()) { continue; }
       applyIntent(intent);
     }
   }
@@ -314,8 +324,6 @@ public class Chunk {
     for (Intent i : INCOMING_RESETS) {
       applyIntent(i);
     }
-    INCOMING_RESETS.clear();
-    OUTGOING_RESETS.clear();
   }
   //=======================================================================================
 }

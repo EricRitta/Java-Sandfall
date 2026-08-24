@@ -80,36 +80,52 @@ public class World {
   
 
 
-  //== CHUNK ==//
+  //== COORDS ==//
+  public int getGlobalX(int cIndex, int cx) {
+    int cPos = cIndex % BOX_SIZE;
+    return cPos * CHUNK_SIZE + cx;
+  }
+  public int getGlobalY(int cIndex, int cy) {
+    int cPos = cIndex / BOX_SIZE;
+    return cPos * CHUNK_SIZE + cy;
+  }
+  
   public int getLocalPos(int gPos) {
     return gPos % CHUNK_SIZE;
   }
-  public Chunk getChunk(int x, int y) {
-    int wx = x / CHUNK_SIZE;
-    int wy = y / CHUNK_SIZE;
-    return getRawChunk(wx, wy);
-  }
+  //=======================================================================================
 
+
+  //== CELL LOGIC ==//
   public void setWorldCellIn(int gx, int gy, int id, int deadline) {
     if (gx < 0 || gy < 0) { return; }
     int cx = getLocalPos(gx);
     int cy = getLocalPos(gy);
     Chunk chunk = getChunk(gx, gy);
     if (chunk != null) {
-      chunk.setRawDataPoint(cx, cy, Chunk.CELL_ID, id);
-      chunk.setRawDataPoint(cx, cy, Chunk.CELL_DEADLINE, deadline);
-      chunk.setRawDataPoint(cx, cy, Chunk.CELL_LAST_MOVED, 0);
+      chunk.setRawData(cx, cy, Chunk.CELL_ID, id);
+      chunk.setRawData(cx, cy, Chunk.CELL_DEADLINE, deadline);
+      chunk.setRawData(cx, cy, Chunk.CELL_LAST_MOVED, 0);
       chunk.activateCell(cx, cy);
     }
   }
+
+  public int getChunkData(int x, int y, int pos) {
+    Chunk c = getChunk(x, y);
+    if (c == null) { return Chunk.OUT_OF_WORLD; }
+    return c.getRawData(getLocalPos(x), getLocalPos(y), pos);
+  }
+
+  public Chunk getChunk(int x, int y) {
+    if (x < 0 || y < 0) {
+      return null;
+    }
+    int wx = x / CHUNK_SIZE;
+    int wy = y / CHUNK_SIZE;
+    return getRawChunk(wx, wy);
+  }
   //=======================================================================================
 
-
-  //== CELL LOGIC ==//
-  public int getChunkDataIn(int x, int y, int pos) {
-    Chunk c = getChunk(x, y);
-    return c.getDataIn(getLocalPos(x), getLocalPos(y), pos);
-  }
 
 
   //== GAME LOGIC ==//
@@ -144,7 +160,9 @@ public class World {
       POOL.execute(() -> {
         try {
           for (int i = start; i < end; i++) {
-            action.accept(DATA[i]);
+            if (DATA[i].isActive()) {
+              action.accept(DATA[i]);
+            }
           }
         } finally {
           latch.countDown();

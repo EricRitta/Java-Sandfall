@@ -10,7 +10,7 @@ public class Air extends Cell {
     this.ID = 0;
   }
 
-  public boolean step(Chunk chunk, int x, int y) {
+  public boolean step(Chunk chunk, int cx, int cy) {
     return false;
   }
 }

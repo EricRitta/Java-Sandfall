@@ -12,7 +12,7 @@ public class Water extends Cell implements LiquidMovement {
     this.DISPERSION_RATE = 5;
   }
 
-  public boolean step(Chunk chunk, int x, int y) {
-    return tryLiquidMovement(chunk, x, y);
+  public boolean step(Chunk chunk, int cx, int cy) {
+    return tryLiquidMovement(chunk, cx, cy);
   }
 }

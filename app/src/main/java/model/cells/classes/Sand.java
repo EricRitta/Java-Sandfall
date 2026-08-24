@@ -11,7 +11,7 @@ public class Sand extends Cell implements PowderMovement {
     this.ID = CellTypes.POWDER_ID + 1;
   }
 
-  public boolean step(Chunk chunk, int x, int y) {
-    return tryPowderMovement(chunk, x, y);
+  public boolean step(Chunk chunk, int cx, int cy) {
+    return tryPowderMovement(chunk, cx, cy);
   }
 }
