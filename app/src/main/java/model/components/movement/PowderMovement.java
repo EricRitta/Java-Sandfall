@@ -11,18 +11,28 @@ public interface PowderMovement extends Movement {
     success = fallTo(chunk, x, y);
     if (success) { return success; }
 
-    if (getCellIn(chunk, x - 1, y + 1) == 0) {
-      moveTo(chunk, x, y, x - 1, y + 1);
-      success = true;
-      return success;
+    boolean checkLeftFirst = chunk.getRandom().nextBoolean();
+
+    if (checkLeftFirst) {
+      if (getCellIn(chunk, x - 1, y + 1) == 0) {
+        moveTo(chunk, x, y, x - 1, y + 1);
+        return true;
+      }
+      if (getCellIn(chunk, x + 1, y + 1) == 0) {
+        moveTo(chunk, x, y, x + 1, y + 1);
+        return true;
+      }
+    } else {
+      if (getCellIn(chunk, x + 1, y + 1) == 0) {
+        moveTo(chunk, x, y, x + 1, y + 1);
+        return true;
+      }
+      if (getCellIn(chunk, x - 1, y + 1) == 0) {
+        moveTo(chunk, x, y, x - 1, y + 1);
+        return true;
+      }
     }
 
-    if (getCellIn(chunk, x + 1, y + 1) == 0) {
-      moveTo(chunk, x, y, x + 1, y + 1);
-      success = true;
-      return success;
-    }
-
-    return success;
+    return false;
   }
 }
