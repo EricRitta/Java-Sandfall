@@ -10,36 +10,41 @@ public interface Movement extends CellGetters {
   
   //== SETS ==//
   default void activatePos(Chunk chunk, int fromX, int fromY, int toX, int toY) {
-    chunk.registerActivation(fromX, fromY, toX, toY);
+    chunk.registerActivation(
+      fromX,
+      fromY,
+      toX,
+      toY
+    );
   }
 
   //== MOVEMENT BASICS ==//
-  default void moveTo(Chunk chunk, int fromCX, int fromCY, int toCX, int toCY) {
+  default void moveTo(Chunk chunk, int fromX, int fromY, int toX, int toY) {
     chunk.registerIntent(
       false,
       "to",
-      chunk.getGlobalX(fromCX),
-      chunk.getGlobalY(fromCY),
-      chunk.getGlobalX(toCX),
-      chunk.getGlobalY(toCY),
+      fromX,
+      fromY,
+      toX,
+      toY,
       0, 
       0,
       getId(),
-      getLastMovedIn(chunk, fromCX, fromCY)
+      getLastMovedIn(chunk, fromX, fromY)
     );
   }
-  default void swapWith(Chunk chunk, int fromCX, int fromCY, int toCX, int toCY) {
+  default void swapWith(Chunk chunk, int fromX, int fromY, int toX, int toY) {
     chunk.registerIntent(
       false,
       "to",
-      chunk.getGlobalX(fromCX),
-      chunk.getGlobalY(fromCY),
-      chunk.getGlobalX(toCX),
-      chunk.getGlobalY(toCY),
-      getCellIn(chunk, toCX, toCY), 
-      getDeadlineIn(chunk, toCX, toCY),
+      fromX,
+      fromY,
+      toX,
+      toY,
+      getCellIn(chunk, toX, toY), 
+      getDeadlineIn(chunk, toX, toY),
       getId(),
-      getLastMovedIn(chunk, fromCX, fromCY)
+      getLastMovedIn(chunk, fromX, fromY)
     );
   }
 
@@ -68,27 +73,27 @@ public interface Movement extends CellGetters {
     }
 
     if (toX == fromX && toY == fromY) { return false; }
-    moveTo(chunk, toX, toY, fromX, fromY);
+    moveTo(chunk, fromX, fromY, toX, toY);
     return true;
   }
 
   // TODO: add acceleration
-  default boolean fallTo(Chunk chunk, int fromCX, int fromCY) {
-    int toCY = fromCY;
+  default boolean fallTo(Chunk chunk, int fromX, int fromY) {
+    int toY = fromY;
 
     for (int i = 1; i <= getGravity(); i++) {
-      int checkCY = fromCY + i;
+      int checkY = fromY + i;
 
-      if (getCellIn(chunk, fromCX, checkCY) == 0) {
-        toCY = checkCY;
-        activatePos(chunk, fromCX, fromCY, fromCX, toCY);
+      if (getCellIn(chunk, fromX, checkY) == 0) {
+        toY = checkY;
+        activatePos(chunk, fromX, fromY, fromX, toY);
       } else {
         break;
       }
     }
 
-    if (toCY == fromCY) { return false; }
-    moveTo(chunk, fromCX, toCY, fromCX, fromCY);
+    if (toY == fromY) { return false; }
+    moveTo(chunk, fromX, fromY, fromX, toY);
     return true;
   }
 }

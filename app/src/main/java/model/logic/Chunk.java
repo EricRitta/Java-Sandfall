@@ -163,14 +163,8 @@ public class Chunk {
     return getRawData(cx, cy, pos);
   }
 
-  public int getDataOut(int x, int y, int pos) {
+  public int getChunkData(int x, int y, int pos) {
     return WORLD.getChunkData(x, y, pos);
-  }
-
-  public int getChunkData(int cx, int cy, int pos) {
-    int data = getDataIn(cx, cy, pos);
-    if (data != OUT_OF_WORLD) { return data; }
-    return getDataOut(getGlobalX(cx), getGlobalY(cy), pos);
   }
 
   public Chunk getChunkByGlobal(int x, int y) {
@@ -250,7 +244,7 @@ public class Chunk {
     }
 
     Cell cell = CHolder.get(cID);
-    cell.step(this, cx, cy);
+    cell.step(this, x, y);
   }
 
   // REAL CALLERS

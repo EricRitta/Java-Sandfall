@@ -79,7 +79,7 @@ public class Movie {
     private void renderWorld(World w) {
         for (int gy = 0; gy < WORLD_HEIGHT; gy++) {
             for (int gx = 0; gx < WORLD_WIDTH; gx++) {
-                int id = w.getChunkDataIn(gx, gy, Chunk.CELL_ID);
+                int id = w.getChunkData(gx, gy, Chunk.CELL_ID);
  
                 if (id == 0) { continue; }
  

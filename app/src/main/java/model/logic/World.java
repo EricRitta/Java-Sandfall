@@ -160,9 +160,7 @@ public class World {
       POOL.execute(() -> {
         try {
           for (int i = start; i < end; i++) {
-            if (DATA[i].isActive()) {
-              action.accept(DATA[i]);
-            }
+            action.accept(DATA[i]);
           }
         } finally {
           latch.countDown();

@@ -12,13 +12,13 @@ public interface PowderMovement extends Movement {
     if (success) { return success; }
 
     if (getCellIn(chunk, x - 1, y + 1) == 0) {
-      moveTo(chunk, x - 1, y + 1, x, y);
+      moveTo(chunk, x, y, x - 1, y + 1);
       success = true;
       return success;
     }
 
     if (getCellIn(chunk, x + 1, y + 1) == 0) {
-      moveTo(chunk, x + 1, y + 1, x, y);
+      moveTo(chunk, x, y, x + 1, y + 1);
       success = true;
       return success;
     }

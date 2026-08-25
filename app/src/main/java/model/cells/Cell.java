@@ -12,5 +12,5 @@ public abstract class Cell {
   public int getGravity() { return this.GRAVITY; }
   public String getType() { return this.TYPE; }
 
-  public abstract boolean step(Chunk chunk, int cx, int cy);
+  public abstract boolean step(Chunk chunk, int x, int y);
 }
