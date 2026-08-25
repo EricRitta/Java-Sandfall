@@ -22,7 +22,6 @@ public interface Movement extends CellGetters {
   default void moveTo(Chunk chunk, int fromX, int fromY, int toX, int toY) {
     chunk.registerIntent(
       false,
-      "to",
       fromX,
       fromY,
       toX,
@@ -36,7 +35,6 @@ public interface Movement extends CellGetters {
   default void swapWith(Chunk chunk, int fromX, int fromY, int toX, int toY) {
     chunk.registerIntent(
       false,
-      "to",
       fromX,
       fromY,
       toX,

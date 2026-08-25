@@ -22,8 +22,8 @@ public class DirtyRect {
 
   // PRIVATES //
   private void expandBounds(int cx, int cy) {
-    cx = clamp(cx, 0, CHUNK_SIZE - 1);
-    cy = clamp(cy, 0, CHUNK_SIZE - 1);
+    cx = clamp(cx, -1, CHUNK_SIZE);
+    cy = clamp(cy, -1, CHUNK_SIZE);
 
     if (cx > maxCX) { maxCX = cx; }
     if (cy > maxCY) { maxCY = cy; }

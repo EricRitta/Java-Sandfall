@@ -29,10 +29,11 @@ public class Chunk {
 
   private final int[] DATA;
   public final DirtyRect RECT; //private after
-  final List<Intent> INCOMING = new ArrayList<>();
-  final List<Intent> OUTGOING = new ArrayList<>();
-  final List<Intent> INCOMING_RESETS = new ArrayList<>();
-  final List<Intent> OUTGOING_RESETS = new ArrayList<>();
+  final List<Intent> COMMIT_INBOX = new ArrayList<>();
+  final List<Intent> RESET_INBOX = new ArrayList<>();
+
+  final List<Intent> COMMIT_OUTBOX = new ArrayList<>();
+  final List<Intent> RESET_OUTBOX = new ArrayList<>();
 
   //== VARIABLES ==//
   private boolean active = false;
@@ -69,6 +70,36 @@ public class Chunk {
     return cx >= 0 && cx < CHUNK_SIZE && cy >= 0 && cy < CHUNK_SIZE;
   }
 
+  // 0 = nenhuma
+  // 1 = esquerda
+  // 2 = direita
+  // 3 = topo
+  // 4 = baixo
+  // 5 = canto superior-esquerdo
+  // 6 = canto superior-direito
+  // 7 = canto inferior-esquerdo
+  // 8 = canto inferior-direito
+
+  private int getBorder(int cx, int cy) {
+      final int last = CHUNK_SIZE - 1;
+
+      if (cx == 0) {
+          if (cy == 0) return 5;
+          if (cy == last) return 7;
+          return 1;
+      }
+
+      if (cx == last) {
+          if (cy == 0) return 6;
+          if (cy == last) return 8;
+          return 2;
+      }
+
+      if (cy == 0) return 3;
+      if (cy == last) return 4;
+
+      return 0;
+  }
   void setRawData(int cx, int cy, int pos, int value) {
     DATA[dataIndex(cx, cy) + pos] = value;
   }
@@ -80,18 +111,18 @@ public class Chunk {
 
 
   //== COORDS ==//
-  public int getGlobalX(int cx) {
-    return WORLD.getGlobalX(getIndex(), cx);
+  public int toGlobalX(int cx) {
+    return WORLD.toGlobalX(getIndex(), cx);
   }
-  public int getGlobalY(int cy) {
-    return WORLD.getGlobalY(getIndex(), cy);
+  public int toGlobalY(int cy) {
+    return WORLD.toGlobalY(getIndex(), cy);
   }
 
-  public int getLocalX(int x) {
-    return WORLD.getLocalPos(x);
+  public int toChunkX(int x) {
+    return WORLD.toChunkPos(x);
   }
-  public int getLocalY(int y) {
-    return WORLD.getLocalPos(y);
+  public int toChunkY(int y) {
+    return WORLD.toChunkPos(y);
   }
   //=======================================================================================
 
@@ -106,47 +137,40 @@ public class Chunk {
   //==============================================
 
   // REGISTRATION
-  public void registerActivation(int fromX, int fromY, int toX, int toY) {
-    String where = "to";
-    if (fromX == toX && fromY == toY) { where = "from"; }
-    registerIntent(true, where, fromX, fromY, toX, toY, 0, 0, 0, 0);
+  public void registerActivation(int senderX, int senderY, int receiverX, int receiverY) {
+    registerIntent(true, senderX, senderY, receiverX, receiverY, 0, 0, 0, 0);
   }
 
   public void registerIntent(
-      boolean activeOnly, String where,
-      int fromX, int fromY, 
-      int toX, int toY, 
-      int fromId, int fromDl, int toId, int toDl
+      boolean activeOnly,
+      int senderX, int senderY, 
+      int receiverX, int receiverY, 
+      int senderId, int senderDl, int receiverId, int receiverDl
       )
   {
-    if (!where.equals("to") && !where.equals("from")) {
-      throw new IllegalArgumentException("Where is incorrecly defined in: {" + where + "}");
-    }
-
-    if (!inBounds(getLocalX(fromX), getLocalY(fromY))) {
-      throw new IllegalArgumentException("Cell out of bounds in: {" + fromX + ", " + fromY + "}");
+    if (!inBounds(toChunkX(senderX), toChunkY(senderY))) {
+      throw new IllegalArgumentException("Cell out of bounds in: {" + senderX + ", " + senderY + "}");
     }
 
     Intent intent = new Intent();
     intent.ACTIVATION_ONLY = activeOnly;
-    intent.WHERE = where;
 
-    intent.FROM_CHUNK = this;
-    intent.FROM_X = fromX;
-    intent.FROM_Y = fromY;
-    intent.FROM_ID = fromId;
-    intent.FROM_DEADLINE = fromDl;
+    intent.SENDER_CHUNK = this;
+    intent.SENDER_X = senderX;
+    intent.SENDER_Y = senderY;
+    intent.SENDER_ID = senderId;
+    intent.SENDER_DEADLINE = senderDl;
 
-    intent.TO_CHUNK = getChunkByGlobal(toX, toY);
-    intent.TO_X = toX;
-    intent.TO_Y = toY;
-    intent.TO_ID = toId;
-    intent.TO_DEADLINE = toDl;
+    intent.RECEIVER_CHUNK = getChunkByGlobal(receiverX, receiverY);
+    intent.RECEIVER_X = receiverX;
+    intent.RECEIVER_Y = receiverY;
+    intent.RECEIVER_ID = receiverId;
+    intent.RECEIVER_DEADLINE = receiverDl;
 
-    if (intent.TO_CHUNK == this) {
-      INCOMING.add(intent);
+    if (intent.RECEIVER_CHUNK == this) {
+      COMMIT_INBOX.add(intent);
     } else {
-      OUTGOING.add(intent);
+      COMMIT_OUTBOX.add(intent);
     }
   }
 
@@ -179,60 +203,72 @@ public class Chunk {
 
 
   //== GAME LOGIC ==//
-  private void applyIntent(Intent i) {
-    switch (i.WHERE) {
-      case "to":
-
-        int tcx = getLocalX(i.TO_X);
-        int tcy = getLocalY(i.TO_Y);
-        if (i.ACTIVATION_ONLY) {
-          activateCell(tcx, tcy);
-          i.WHERE = "from";
-          if (i.FROM_CHUNK != this) {
-            OUTGOING_RESETS.add(i);
-          }
-          break;
-        }
-
-        int defaultidx = dataIndex(tcx, tcy);
-        DATA[defaultidx + CELL_ID] = i.TO_ID;
-        DATA[defaultidx + CELL_DEADLINE] = i.TO_DEADLINE;
-        DATA[defaultidx + CELL_LAST_MOVED] = (i.TO_ID != 0) ? WORLD.getTime() : 0;
-        activateCell(tcx, tcy);
-
-        if (i.FROM_CHUNK == null) { break; }
-        i.WHERE = "from";
-        if (i.FROM_CHUNK == this) {
-          INCOMING_RESETS.add(i);
-        } else {
-          OUTGOING_RESETS.add(i);
-        }
-
-        break;
-      case "from":
-
-        int fcx = getLocalX(i.FROM_X);
-        int fcy = getLocalY(i.FROM_Y);
-        if (i.ACTIVATION_ONLY) {
-          activateCell(fcx, fcy);
-          break;
-        }
-
-        int resetidx = dataIndex(fcx, fcy);
-        DATA[resetidx + CELL_ID] = i.FROM_ID;
-        DATA[resetidx + CELL_DEADLINE] = i.FROM_DEADLINE;
-        DATA[resetidx + CELL_LAST_MOVED] = (i.FROM_ID != 0) ? WORLD.getTime() : 0;
-        activateCell(fcx, fcy);
-
-        break;
-      default:
-        throw new IllegalArgumentException("Intent was not initialized corrctly: " + i.WHERE);
+  private void registerReset(Intent intent) {
+    if (intent.SENDER_CHUNK == this) {
+      RESET_INBOX.add(intent);
+    } else {
+      RESET_OUTBOX.add(intent);
     }
   }
 
+  private void applyCommitIntent(Intent intent) {
+    int receiver_cx = toChunkX(intent.RECEIVER_X);
+    int receiver_cy = toChunkY(intent.RECEIVER_Y);
+ 
+    if (intent.ACTIVATION_ONLY) {
+      activateCell(receiver_cx, receiver_cy);
+      // will activate two times if the same cord.
+      if (intent.SENDER_X != intent.RECEIVER_X || intent.SENDER_Y != intent.RECEIVER_Y) {
+        registerReset(intent);
+      }
+      return;
+    }
+
+    int defaultidx = dataIndex(receiver_cx, receiver_cy);
+    DATA[defaultidx + CELL_ID] = intent.RECEIVER_ID;
+    DATA[defaultidx + CELL_DEADLINE] = intent.RECEIVER_DEADLINE;
+    DATA[defaultidx + CELL_LAST_MOVED] = (intent.RECEIVER_ID != 0) ? getTime() : 0;
+    activateCell(receiver_cx, receiver_cy);
+
+    registerReset(intent);
+  }
+
+  private void applyResetIntent(Intent intent) {
+    int sender_cx = toChunkX(intent.SENDER_X);
+    int sender_cy = toChunkY(intent.SENDER_Y);
+    if (intent.ACTIVATION_ONLY) {
+      activateCell(sender_cx, sender_cy);
+      return;
+    }
+
+    int resetidx = dataIndex(sender_cx, sender_cy);
+    DATA[resetidx + CELL_ID] = intent.SENDER_ID;
+    DATA[resetidx + CELL_DEADLINE] = intent.SENDER_DEADLINE;
+    DATA[resetidx + CELL_LAST_MOVED] = (intent.SENDER_ID != 0) ? getTime() : 0;
+    activateCell(sender_cx, sender_cy);
+  }
+
   private void stepCell(int cx, int cy) {
-    int x = getGlobalX(cx);
-    int y = getGlobalY(cy);
+    int x = toGlobalX(cx);
+    int y = toGlobalY(cy);
+
+    // kinda sus code, if problem in the future, ik where to look
+    if (!inBounds(cx, cy)) {
+      Chunk neighbor = WORLD.getChunk(x, y);
+      if (neighbor != null) {
+        int myCx = cx < 0 ? 0 : (cx >= CHUNK_SIZE ? CHUNK_SIZE - 1 : cx);
+        int myCy = cy < 0 ? 0 : (cy >= CHUNK_SIZE ? CHUNK_SIZE - 1 : cy);
+        
+        int myId = getRawData(myCx, myCy, CELL_ID);
+        int neighborId = neighbor.getRawData(toChunkX(x), toChunkY(y), CELL_ID);
+
+        // wake up neighbro only if we are air
+        if (myId == 0 && neighborId != 0) {
+          registerActivation(x, y, x, y);
+        }
+      }
+      return;
+    }
 
     int cID = getRawData(cx, cy, CELL_ID);
     if (cID == 0) { return; } // air
@@ -249,10 +285,12 @@ public class Chunk {
 
   // REAL CALLERS
   void process() {
-    INCOMING_RESETS.clear();
-    OUTGOING_RESETS.clear();
-    INCOMING.clear();
-    OUTGOING.clear();
+    COMMIT_INBOX.clear();
+    RESET_INBOX.clear();
+
+    COMMIT_OUTBOX.clear();
+    RESET_OUTBOX.clear();
+
     if (RECT.getIsEmpty()) { 
       setActive(false); 
       return; 
@@ -274,50 +312,56 @@ public class Chunk {
   }
 
   void commit() {
-    for (Intent intent : INCOMING) {
-      if (intent.ACTIVATION_ONLY) {
-        applyIntent(intent);
+
+    for (int i = COMMIT_INBOX.size() - 1; i > 0; i--) {
+      int j = getRandom().nextInt(i + 1);
+      Intent tmp = COMMIT_INBOX.get(i);
+      COMMIT_INBOX.set(i, COMMIT_INBOX.get(j));
+      COMMIT_INBOX.set(j, tmp);
+
+      Intent current = COMMIT_INBOX.get(i);
+
+      if (current.ACTIVATION_ONLY) {
+        applyCommitIntent(current);
         continue;
       }
+      if (getRawData(toChunkX(current.RECEIVER_X), toChunkY(current.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) { continue; }
 
-      if (getRawData(getLocalX(intent.TO_X), getLocalY(intent.TO_Y), CELL_LAST_MOVED) == getTime()) { continue; }
-      applyIntent(intent);
+      applyCommitIntent(current);
     }
+
+    if (!COMMIT_INBOX.isEmpty()) {
+      Intent first = COMMIT_INBOX.get(0);
+
+      if (first.ACTIVATION_ONLY) {
+        applyCommitIntent(first);
+
+      } else if (getRawData(toChunkX(first.RECEIVER_X), toChunkY(first.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) {
+        applyCommitIntent(first);
+
+      }
+    }
+
   }
 
-  // void commit() {
-  //   for (int i = INCOMING.size() - 1; i > 0; i--) {
-  //     int j = getRandom().nextInt(i + 1);
-  //     Intent tmp = INCOMING.get(i);
-  //     INCOMING.set(i, INCOMING.get(j));
-  //     INCOMING.set(j, tmp);
-  //
-  //     Intent current = INCOMING.get(i);
-  //
-  //     if (current.ACTIVATION_ONLY) { 
-  //       applyIntent(current, false);
-  //       continue;
-  //     }
-  //     if (current.TO_CHUNK.getRawDataPoint(current.TO_CX, current.TO_CY, CELL_LAST_MOVED) == getTime()) { continue; }
-  //
-  //     applyIntent(current, false);
-  //   }
-  //
-  //   if (!INCOMING.isEmpty()) {
-  //     Intent first = INCOMING.get(0);
-  //
-  //     if (first.ACTIVATION_ONLY) {
-  //       applyIntent(first, false);
-  //     } else if (first.TO_CHUNK.getRawDataPoint(first.TO_CX, first.TO_CY, CELL_LAST_MOVED) != getTime()) {
-  //       applyIntent(first, false);
-  //     }
-  //   }
-  // }
-
   void applyResets() {
-    for (Intent i : INCOMING_RESETS) {
-      applyIntent(i);
+
+    for (int i = RESET_INBOX.size() - 1; i > 0; i--) {
+      int j = getRandom().nextInt(i + 1);
+      Intent tmp = RESET_INBOX.get(i);
+      RESET_INBOX.set(i, RESET_INBOX.get(j));
+      RESET_INBOX.set(j, tmp);
+
+      Intent current = RESET_INBOX.get(i);
+
+      applyResetIntent(current);
     }
+
+    if (!RESET_INBOX.isEmpty()) {
+      Intent first = RESET_INBOX.get(0);
+      applyResetIntent(first);
+    }
+
   }
   //=======================================================================================
 }

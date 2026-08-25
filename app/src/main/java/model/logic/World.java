@@ -81,16 +81,16 @@ public class World {
 
 
   //== COORDS ==//
-  public int getGlobalX(int cIndex, int cx) {
+  public int toGlobalX(int cIndex, int cx) {
     int cPos = cIndex % BOX_SIZE;
     return cPos * CHUNK_SIZE + cx;
   }
-  public int getGlobalY(int cIndex, int cy) {
+  public int toGlobalY(int cIndex, int cy) {
     int cPos = cIndex / BOX_SIZE;
     return cPos * CHUNK_SIZE + cy;
   }
   
-  public int getLocalPos(int gPos) {
+  public int toChunkPos(int gPos) {
     return gPos % CHUNK_SIZE;
   }
   //=======================================================================================
@@ -99,8 +99,8 @@ public class World {
   //== CELL LOGIC ==//
   public void setWorldCellIn(int gx, int gy, int id, int deadline) {
     if (gx < 0 || gy < 0) { return; }
-    int cx = getLocalPos(gx);
-    int cy = getLocalPos(gy);
+    int cx = toChunkPos(gx);
+    int cy = toChunkPos(gy);
     Chunk chunk = getChunk(gx, gy);
     if (chunk != null) {
       chunk.setRawData(cx, cy, Chunk.CELL_ID, id);
@@ -113,7 +113,7 @@ public class World {
   public int getChunkData(int x, int y, int pos) {
     Chunk c = getChunk(x, y);
     if (c == null) { return Chunk.OUT_OF_WORLD; }
-    return c.getRawData(getLocalPos(x), getLocalPos(y), pos);
+    return c.getRawData(toChunkPos(x), toChunkPos(y), pos);
   }
 
   public Chunk getChunk(int x, int y) {
@@ -132,16 +132,16 @@ public class World {
   // INTENT
   private void distributeIntents() {
     for (Chunk origin : DATA) {
-      for (Intent intent : origin.OUTGOING) {
-        intent.TO_CHUNK.INCOMING.add(intent);
+      for (Intent intent : origin.COMMIT_OUTBOX) {
+        intent.RECEIVER_CHUNK.COMMIT_INBOX.add(intent);
       }
     }
   }
 
   private void distributeResets() {
     for (Chunk origin : DATA) {
-      for (Intent intent : origin.OUTGOING_RESETS) {
-        intent.FROM_CHUNK.INCOMING_RESETS.add(intent);
+      for (Intent intent : origin.RESET_OUTBOX) {
+        intent.SENDER_CHUNK.RESET_INBOX.add(intent);
       }
     }
   }

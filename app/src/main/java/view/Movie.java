@@ -32,7 +32,7 @@ public class Movie {
 
     public void init() {
         InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Test Screen");
-        SetTargetFPS(Config.getInt("TARGET_FPS"));
+        //SetTargetFPS(Config.getInt("TARGET_FPS"));
         SetExitKey(KEY_NULL);
     }
  

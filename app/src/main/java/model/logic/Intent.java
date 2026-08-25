@@ -3,14 +3,12 @@ import model.logic.Chunk;
 
 public class Intent {
   boolean ACTIVATION_ONLY = false;
-  String WHERE = "to"; // to, from
 
-  Chunk FROM_CHUNK;
-  int FROM_X, FROM_Y;
+  Chunk SENDER_CHUNK;
+  int SENDER_X, SENDER_Y;
+  int SENDER_ID, SENDER_DEADLINE;
 
-  Chunk TO_CHUNK;
-  int TO_X, TO_Y;
-
-  int FROM_ID, FROM_DEADLINE;
-  int TO_ID, TO_DEADLINE;
+  Chunk RECEIVER_CHUNK;
+  int RECEIVER_X, RECEIVER_Y;
+  int RECEIVER_ID, RECEIVER_DEADLINE;
 }
