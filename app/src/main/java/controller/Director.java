@@ -26,14 +26,16 @@ public class Director {
     while (!MOVIE.shouldClose()) {
       MOVIE.handleInput(WORLD, this);
 
-      float dt = MOVIE.getDt();
-      accumulator += dt;
-
       if (!isPaused()) {
+
+        float dt = MOVIE.getDt();
+        accumulator += dt;
+
         while (accumulator >= FIXED_TIMESTAMP) {
           WORLD.step();
           accumulator -= FIXED_TIMESTAMP;
         }
+
       }
 
       MOVIE.step(WORLD);

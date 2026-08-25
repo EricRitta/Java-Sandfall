@@ -177,11 +177,28 @@ public class World {
   }
 
   public void step() {
-    parallelForEach(Chunk::process); // process phase: process cells position and set incoming and outgoing intentions
-    distributeIntents(); // distribution phase: distrubute outgoing intentions to incoming intentions.
-    parallelForEach(Chunk::commit); // commit phase: commit incoming intentions and register reset intentions.
+    for (Chunk chunk : DATA) {
+      chunk.process();
+    }
+
+    distributeIntents();
+
+    for (Chunk chunk : DATA) {
+      chunk.commit();
+    }
+
     distributeResets();
-    parallelForEach(Chunk::applyResets); // reset phase: commit reset intentions.
+
+
+    for (Chunk chunk : DATA) {
+      chunk.applyResets();
+    }
+
+    // parallelForEach(Chunk::process); // process phase: process cells position and set incoming and outgoing intentions
+    // distributeIntents(); // distribution phase: distrubute outgoing intentions to incoming intentions.
+    // parallelForEach(Chunk::commit); // commit phase: commit incoming intentions and register reset intentions.
+    // distributeResets();
+    // parallelForEach(Chunk::applyResets); // reset phase: commit reset intentions.
     incrementTime();
   }
 

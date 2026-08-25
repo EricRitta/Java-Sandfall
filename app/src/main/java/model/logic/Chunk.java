@@ -1,5 +1,6 @@
 package model.logic;
-
+import java.util.Map;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
@@ -58,6 +59,7 @@ public class Chunk {
   public boolean isActive() { return this.active; }
   public int getTime() { return WORLD.getTime(); }
   public Random getRandom() { return this.RANDOM; }
+  public int getChunkSize() { return this.CHUNK_SIZE; }
   //=======================================================================================
 
 
@@ -167,6 +169,7 @@ public class Chunk {
     intent.RECEIVER_ID = receiverId;
     intent.RECEIVER_DEADLINE = receiverDl;
 
+    if (intent.RECEIVER_CHUNK == null) { return; }
     if (intent.RECEIVER_CHUNK == this) {
       COMMIT_INBOX.add(intent);
     } else {
@@ -193,7 +196,6 @@ public class Chunk {
 
   public Chunk getChunkByGlobal(int x, int y) {
     Chunk c = WORLD.getChunk(x, y);
-    if (c == null) { throw new IllegalArgumentException("Chunk out of bounds in: {" + x + ", " + y + "}"); }
     return c;
   }
   //==============================================
@@ -252,24 +254,6 @@ public class Chunk {
     int x = toGlobalX(cx);
     int y = toGlobalY(cy);
 
-    // kinda sus code, if problem in the future, ik where to look
-    if (!inBounds(cx, cy)) {
-      Chunk neighbor = WORLD.getChunk(x, y);
-      if (neighbor != null) {
-        int myCx = cx < 0 ? 0 : (cx >= CHUNK_SIZE ? CHUNK_SIZE - 1 : cx);
-        int myCy = cy < 0 ? 0 : (cy >= CHUNK_SIZE ? CHUNK_SIZE - 1 : cy);
-        
-        int myId = getRawData(myCx, myCy, CELL_ID);
-        int neighborId = neighbor.getRawData(toChunkX(x), toChunkY(y), CELL_ID);
-
-        // wake up neighbro only if we are air
-        if (myId == 0 && neighborId != 0) {
-          registerActivation(x, y, x, y);
-        }
-      }
-      return;
-    }
-
     int cID = getRawData(cx, cy, CELL_ID);
     if (cID == 0) { return; } // air
                               
@@ -311,57 +295,78 @@ public class Chunk {
     RECT.clear();
   }
 
-  void commit() {
+    void commit() {
 
-    for (int i = COMMIT_INBOX.size() - 1; i > 0; i--) {
-      int j = getRandom().nextInt(i + 1);
-      Intent tmp = COMMIT_INBOX.get(i);
-      COMMIT_INBOX.set(i, COMMIT_INBOX.get(j));
-      COMMIT_INBOX.set(j, tmp);
-
-      Intent current = COMMIT_INBOX.get(i);
-
-      if (current.ACTIVATION_ONLY) {
-        applyCommitIntent(current);
-        continue;
+      for (Intent intent : COMMIT_INBOX) {
+        if (intent.ACTIVATION_ONLY) {
+          applyCommitIntent(intent);
+        }
       }
-      if (getRawData(toChunkX(current.RECEIVER_X), toChunkY(current.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) { continue; }
 
-      applyCommitIntent(current);
+      for (int i = COMMIT_INBOX.size() - 1; i >= 0; i--) {
+        Intent intent = COMMIT_INBOX.get(i);
+        if (intent.ACTIVATION_ONLY) {
+          COMMIT_INBOX.remove(i);
+        }
+      }
+
+        Map<Long, List<Intent>> byDestination = new HashMap<>();
+
+        for (Intent intent : COMMIT_INBOX) {
+            long key = ((long) intent.RECEIVER_X << 32) | (intent.RECEIVER_Y & 0xFFFFFFFFL);
+            byDestination.computeIfAbsent(key, k -> new ArrayList<>()).add(intent);
+        }
+
+        for (List<Intent> competitors : byDestination.values()) {
+            Intent winner = competitors.get(getRandom().nextInt(competitors.size()));
+
+            // if (winner.ACTIVATION_ONLY) {
+            //     applyIntent(winner);
+            //     continue;
+            // }
+
+            // if (getRawData(getLocalX(winner.TO_X), getLocalY(winner.TO_Y), CELL_LAST_MOVED) == getTime()) { continue; }
+            applyCommitIntent(winner);
+        }
     }
 
-    if (!COMMIT_INBOX.isEmpty()) {
-      Intent first = COMMIT_INBOX.get(0);
-
-      if (first.ACTIVATION_ONLY) {
-        applyCommitIntent(first);
-
-      } else if (getRawData(toChunkX(first.RECEIVER_X), toChunkY(first.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) {
-        applyCommitIntent(first);
-
-      }
-    }
-
-  }
+  // void commit() {
+  //
+  //   for (int i = COMMIT_INBOX.size() - 1; i > 0; i--) {
+  //     int j = getRandom().nextInt(i + 1);
+  //     Intent tmp = COMMIT_INBOX.get(i);
+  //     COMMIT_INBOX.set(i, COMMIT_INBOX.get(j));
+  //     COMMIT_INBOX.set(j, tmp);
+  //
+  //     Intent current = COMMIT_INBOX.get(i);
+  //
+  //     if (current.ACTIVATION_ONLY) {
+  //       applyCommitIntent(current);
+  //       continue;
+  //     }
+  //     if (getRawData(toChunkX(current.RECEIVER_X), toChunkY(current.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) { continue; }
+  //
+  //     applyCommitIntent(current);
+  //   }
+  //
+  //   if (!COMMIT_INBOX.isEmpty()) {
+  //     Intent first = COMMIT_INBOX.get(0);
+  //
+  //     if (first.ACTIVATION_ONLY) {
+  //       applyCommitIntent(first);
+  //
+  //     } else if (getRawData(toChunkX(first.RECEIVER_X), toChunkY(first.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) {
+  //       applyCommitIntent(first);
+  //
+  //     }
+  //   }
+  //
+  // }
 
   void applyResets() {
-
-    for (int i = RESET_INBOX.size() - 1; i > 0; i--) {
-      int j = getRandom().nextInt(i + 1);
-      Intent tmp = RESET_INBOX.get(i);
-      RESET_INBOX.set(i, RESET_INBOX.get(j));
-      RESET_INBOX.set(j, tmp);
-
-      Intent current = RESET_INBOX.get(i);
-
-      applyResetIntent(current);
+    for (Intent intent : RESET_INBOX) {
+      applyResetIntent(intent);
     }
-
-    if (!RESET_INBOX.isEmpty()) {
-      Intent first = RESET_INBOX.get(0);
-      applyResetIntent(first);
-    }
-
   }
   //=======================================================================================
 }

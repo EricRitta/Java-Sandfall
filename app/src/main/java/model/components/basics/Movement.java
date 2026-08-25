@@ -17,9 +17,28 @@ public interface Movement extends CellGetters {
       toY
     );
   }
+  default void pingNeighbors(Chunk chunk, int x, int y) {
+    int localX = chunk.toChunkX(x);
+    int localY = chunk.toChunkY(y);
+    int chunkSize = chunk.getChunkSize();
+
+    int pingX = 0, pingY = 0;
+
+    if (localX == 0) { pingX = -1; }
+    if (localX == chunkSize - 1) { pingX = 1; }
+    if (localY == 0) { pingY = -1; }
+    if (localY == chunkSize - 1) { pingY = 1; }
+
+    if (pingX != 0) { activatePos(chunk, x, y, x + pingX, y); }
+    if (pingY != 0) { activatePos(chunk, x, y, x, y + pingY); }
+    if (pingX != 0 && pingY != 0) { activatePos(chunk, x, y, x + pingX, y + pingY); }
+  }
 
   //== MOVEMENT BASICS ==//
   default void moveTo(Chunk chunk, int fromX, int fromY, int toX, int toY) {
+    pingNeighbors(chunk, fromX, fromY);
+    // pingNeighbors(chunk, toX, toY);
+
     chunk.registerIntent(
       false,
       fromX,
@@ -33,6 +52,9 @@ public interface Movement extends CellGetters {
     );
   }
   default void swapWith(Chunk chunk, int fromX, int fromY, int toX, int toY) {
+    pingNeighbors(chunk, fromX, fromY);
+    // pingNeighbors(chunk, toX, toY);
+
     chunk.registerIntent(
       false,
       fromX,
