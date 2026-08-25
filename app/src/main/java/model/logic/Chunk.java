@@ -280,88 +280,59 @@ public class Chunk {
       return; 
     }
 
-    boolean reverseCX = getRandom().nextBoolean();
-    boolean reverseCY = getRandom().nextBoolean();
-
-    for (int dy = RECT.getMinCY(); dy <= RECT.getMaxCY(); dy++) {
-      int cy = reverseCY ? (RECT.getMaxCY() - (dy - RECT.getMinCY())) : dy;
-      for (int dx = RECT.getMinCX(); dx <= RECT.getMaxCX(); dx++) {
-        int cx = reverseCX ? (RECT.getMaxCX() - (dx - RECT.getMinCX())) : dx;
-
+    for (int cy = RECT.getMinCY(); cy <= RECT.getMaxCY(); cy++) {
+      for (int cx = RECT.getMinCX(); cx <= RECT.getMaxCX(); cx++) {
         stepCell(cx, cy);
       }
     }
 
+    // boolean reverseCX = getRandom().nextBoolean();
+    // boolean reverseCY = getRandom().nextBoolean();
+    //
+    // for (int dy = RECT.getMinCY(); dy <= RECT.getMaxCY(); dy++) {
+    //   int cy = reverseCY ? (RECT.getMaxCY() - (dy - RECT.getMinCY())) : dy;
+    //   for (int dx = RECT.getMinCX(); dx <= RECT.getMaxCX(); dx++) {
+    //     int cx = reverseCX ? (RECT.getMaxCX() - (dx - RECT.getMinCX())) : dx;
+    //
+    //     stepCell(cx, cy);
+    //   }
+    // }
+
     RECT.clear();
   }
 
-    void commit() {
+  void commit() {
 
-      for (Intent intent : COMMIT_INBOX) {
-        if (intent.ACTIVATION_ONLY) {
-          applyCommitIntent(intent);
-        }
+    for (int i = COMMIT_INBOX.size() - 1; i > 0; i--) {
+      int j = getRandom().nextInt(i + 1);
+      Intent tmp = COMMIT_INBOX.get(i);
+      COMMIT_INBOX.set(i, COMMIT_INBOX.get(j));
+      COMMIT_INBOX.set(j, tmp);
+
+      Intent current = COMMIT_INBOX.get(i);
+
+      if (current.ACTIVATION_ONLY) {
+        applyCommitIntent(current);
+        continue;
       }
+      if (getRawData(toChunkX(current.RECEIVER_X), toChunkY(current.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) { continue; }
 
-      for (int i = COMMIT_INBOX.size() - 1; i >= 0; i--) {
-        Intent intent = COMMIT_INBOX.get(i);
-        if (intent.ACTIVATION_ONLY) {
-          COMMIT_INBOX.remove(i);
-        }
-      }
-
-        Map<Long, List<Intent>> byDestination = new HashMap<>();
-
-        for (Intent intent : COMMIT_INBOX) {
-            long key = ((long) intent.RECEIVER_X << 32) | (intent.RECEIVER_Y & 0xFFFFFFFFL);
-            byDestination.computeIfAbsent(key, k -> new ArrayList<>()).add(intent);
-        }
-
-        for (List<Intent> competitors : byDestination.values()) {
-            Intent winner = competitors.get(getRandom().nextInt(competitors.size()));
-
-            // if (winner.ACTIVATION_ONLY) {
-            //     applyIntent(winner);
-            //     continue;
-            // }
-
-            // if (getRawData(getLocalX(winner.TO_X), getLocalY(winner.TO_Y), CELL_LAST_MOVED) == getTime()) { continue; }
-            applyCommitIntent(winner);
-        }
+      applyCommitIntent(current);
     }
 
-  // void commit() {
-  //
-  //   for (int i = COMMIT_INBOX.size() - 1; i > 0; i--) {
-  //     int j = getRandom().nextInt(i + 1);
-  //     Intent tmp = COMMIT_INBOX.get(i);
-  //     COMMIT_INBOX.set(i, COMMIT_INBOX.get(j));
-  //     COMMIT_INBOX.set(j, tmp);
-  //
-  //     Intent current = COMMIT_INBOX.get(i);
-  //
-  //     if (current.ACTIVATION_ONLY) {
-  //       applyCommitIntent(current);
-  //       continue;
-  //     }
-  //     if (getRawData(toChunkX(current.RECEIVER_X), toChunkY(current.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) { continue; }
-  //
-  //     applyCommitIntent(current);
-  //   }
-  //
-  //   if (!COMMIT_INBOX.isEmpty()) {
-  //     Intent first = COMMIT_INBOX.get(0);
-  //
-  //     if (first.ACTIVATION_ONLY) {
-  //       applyCommitIntent(first);
-  //
-  //     } else if (getRawData(toChunkX(first.RECEIVER_X), toChunkY(first.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) {
-  //       applyCommitIntent(first);
-  //
-  //     }
-  //   }
-  //
-  // }
+    if (!COMMIT_INBOX.isEmpty()) {
+      Intent first = COMMIT_INBOX.get(0);
+
+      if (first.ACTIVATION_ONLY) {
+        applyCommitIntent(first);
+
+      } else if (getRawData(toChunkX(first.RECEIVER_X), toChunkY(first.RECEIVER_Y), CELL_LAST_MOVED) == getTime()) {
+        applyCommitIntent(first);
+
+      }
+    }
+
+  }
 
   void applyResets() {
     for (Intent intent : RESET_INBOX) {
