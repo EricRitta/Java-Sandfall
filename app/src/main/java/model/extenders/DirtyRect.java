@@ -1,4 +1,4 @@
-package model.logic;
+package model.extenders;
 
 public class DirtyRect {
   private int CHUNK_SIZE;
@@ -6,18 +6,18 @@ public class DirtyRect {
   private int maxCY = Integer.MIN_VALUE;
   private int minCX = Integer.MAX_VALUE;
   private int minCY = Integer.MAX_VALUE;
-  private boolean isEmpty = true;
+  private boolean empty = true;
 
   public DirtyRect(int chunkSize) {
     this.CHUNK_SIZE = chunkSize;
   }
  
   //== GETTERS ==//
-  public int getMaxCX() { return this.maxCX; }
-  public int getMaxCY() { return this.maxCY; }
-  public int getMinCX() { return this.minCX; }
-  public int getMinCY() { return this.minCY; }
-  public boolean getIsEmpty() { return this.isEmpty; }
+  public int     maxCX()   { return this.maxCX; }
+  public int     maxCY()   { return this.maxCY; }
+  public int     minCX()   { return this.minCX; }
+  public int     minCY()   { return this.minCY; }
+  public boolean isEmpty() { return this.empty; }
   //=======================================================================================
 
   // PRIVATES //
@@ -29,7 +29,7 @@ public class DirtyRect {
     if (cy > maxCY) { maxCY = cy; }
     if (cx < minCX) { minCX = cx; }
     if (cy < minCY) { minCY = cy; }
-    isEmpty = false;
+    empty = false;
   }
 
   private int clamp(int value, int min, int max) {
@@ -40,17 +40,17 @@ public class DirtyRect {
   //=======================================================================================
 
   // PACKAGE PRIVATES //
-  void makeDirty(int cx, int cy) {
+  public void makeDirty(int cx, int cy) {
     expandBounds(cx + 2, cy + 2);
     expandBounds(cx - 2, cy - 2);
   }
 
-  void clear() {
+  public void clear() {
     maxCX = Integer.MIN_VALUE;
     maxCY = Integer.MIN_VALUE;
     minCX = Integer.MAX_VALUE;
     minCY = Integer.MAX_VALUE;
-    isEmpty = true;
+    empty = true;
   }
   //=======================================================================================
 }

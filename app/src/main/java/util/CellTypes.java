@@ -1,6 +1,8 @@
 package util;
 
 public class CellTypes {
+  public static final int OUT_OF_WORLD = Integer.MIN_VALUE;
+
   public static final String POWDER = "POWDER";
   public static final String SOLID = "SOLID";
   public static final String LIQUID = "LIQUID";

@@ -1,40 +1,33 @@
-package model.logic;
-import java.util.Map;
-import java.util.HashMap;
+package model.universe;
+
+// JAVA
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
 
-import model.logic.DirtyRect;
-import model.logic.Intent;
+// PROJECT
+import model.extenders.CellCSOA;
+import model.extenders.DirtyRect;
+import model.extenders.Intent;
 
 import model.cells.CHolder;
 import model.cells.Cell;
 
 public class Chunk {
-  //== STATIC CONSTANTS ==//
-  public static final int FIELDS = 3;
-  public static final int CELL_ID = 0;
-  public static final int CELL_DEADLINE = 1;
-  public static final int CELL_LAST_MOVED = 2;
-  public static final int OUT_OF_WORLD = Integer.MIN_VALUE;
-
   //== CONSTANTS ==//
   private final Random RANDOM = new Random();
 
-  //== FINAL ==//
   private final int INDEX;
   private final World WORLD;
-  private final int CHUNK_SIZE;
-  private final int BOX_SIZE;
+  private final int WORLD_WIDTH;
+  private final int WORLD_HEIGHT;
+  private final int SIZE;
 
   private final int[] DATA;
   public final DirtyRect RECT; //private after
-  final List<Intent> COMMIT_INBOX = new ArrayList<>();
-  final List<Intent> RESET_INBOX = new ArrayList<>();
-
-  final List<Intent> COMMIT_OUTBOX = new ArrayList<>();
-  final List<Intent> RESET_OUTBOX = new ArrayList<>();
+  
+  final List<Intent> COMMIT_BOX = new ArrayList<>();
+  final List<Intent> RESET_BOX = new ArrayList<>();
 
   //== VARIABLES ==//
   private boolean active = false;
@@ -43,8 +36,9 @@ public class Chunk {
   public Chunk(int i, World w) {
     this.INDEX = i;
     this.WORLD = w;
-    this.CHUNK_SIZE = WORLD.getChunkSize();
-    this.BOX_SIZE = WORLD.getBoxSize();
+    this.WORLD_WIDTH = WORLD.width();
+    this.WORLD_HEIGHT = WORLD.height();
+    this.SIZE = WORLD.chunkSize();
 
     this.DATA = new int[CHUNK_SIZE * CHUNK_SIZE * FIELDS];
     this.RECT = new DirtyRect(CHUNK_SIZE);

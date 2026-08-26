@@ -1,5 +1,5 @@
-package model.logic;
-import model.logic.Chunk;
+package model.extenders;
+import model.universe.Chunk;
 
 public class Intent {
   boolean ACTIVATION_ONLY = false;

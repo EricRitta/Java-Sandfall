@@ -4,7 +4,7 @@ package model.universe;
 import java.util.Random;
 
 // PROJECT
-import model.universe.ChunkCSOA;
+import model.extenders.ChunkCSOA;
 // import java.util.concurrent.CountDownLatch;
 // import java.util.concurrent.ExecutorService;
 // import java.util.concurrent.Executors;
@@ -56,12 +56,12 @@ public class World {
   //=======================================================================================
 
   //== GETTERS ==//
-  public int    getTime()      { return this.time; }
-  public int    getChunkSize() { return this.CHUNK_SIZE; }
-  public int    getWidth()     { return this.WIDTH; }
-  public int    getHeight()    { return this.HEIGHT; }
-  public int    getDataSize()  { return this.DATA_SIZE; }
-  public Random getRandom()    { return this.RANDOM; }
+  public int    time()      { return this.time; }
+  public int    chunkSize() { return this.CHUNK_SIZE; }
+  public int    width()     { return this.WIDTH; }
+  public int    height()    { return this.HEIGHT; }
+  public int    dataSize()  { return this.DATA_SIZE; }
+  public Random getRandom() { return this.RANDOM; }
   //=======================================================================================
 
 
@@ -85,11 +85,11 @@ public class World {
 
   //== COORDS ==//
   public int toGlobalX(int cIndex, int cx) {
-    int cPos = cIndex % BOX_SIZE;
+    int cPos = cIndex % WIDTH;
     return cPos * CHUNK_SIZE + cx;
   }
   public int toGlobalY(int cIndex, int cy) {
-    int cPos = cIndex / BOX_SIZE;
+    int cPos = cIndex / WIDTH;
     return cPos * CHUNK_SIZE + cy;
   }
   
@@ -115,9 +115,9 @@ public class World {
   }
 
   public int getChunkData(int x, int y, int pos) {
-    Chunk c = getChunk(x, y);
-    if (c == null) { return Chunk.OUT_OF_WORLD; }
-    return c.getRawData(toChunkPos(x), toChunkPos(y), pos);
+    Chunk chunk = getChunk(x, y);
+    if (chunk == null) { return Chunk.OUT_OF_WORLD; }
+    return chunk.getRawData(toChunkPos(x), toChunkPos(y), pos);
   }
   //=======================================================================================
 

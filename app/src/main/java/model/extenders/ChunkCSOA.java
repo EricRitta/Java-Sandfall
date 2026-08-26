@@ -1,5 +1,4 @@
-package model.universe;
-
+package model.extenders;
 import model.universe.Chunk;
 
 public class ChunkCSOA {
@@ -17,9 +16,9 @@ public class ChunkCSOA {
 
   //== SETTERS ==//
   //== GETTERS ==//
-  public int width() { return this.WIDTH; }
+  public int width()  { return this.WIDTH; }
   public int height() { return this.HEIGHT; }
-  public int size() { return this.SIZE; }
+  public int size()   { return this.SIZE; }
   //=======================================================================================
 
 
