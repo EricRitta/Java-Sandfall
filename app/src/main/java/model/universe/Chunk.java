@@ -6,10 +6,11 @@ import java.util.ArrayList;
 import java.util.Random;
 
 // PROJECT
-import model.extenders.CellCSOA;
-import model.extenders.DirtyRect;
-import model.extenders.Intent;
+import model.util.CellCSOA;
+import model.universe.DirtyRect;
+import model.universe.Intent;
 
+import settings.CellTypes;
 import model.cells.CHolder;
 import model.cells.Cell;
 
@@ -19,12 +20,10 @@ public class Chunk {
 
   private final int INDEX;
   private final World WORLD;
-  private final int WORLD_WIDTH;
-  private final int WORLD_HEIGHT;
   private final int SIZE;
 
-  private final int[] DATA;
-  public final DirtyRect RECT; //private after
+  private final CellCSOA DATA;
+  private final DirtyRect RECT;
   
   final List<Intent> COMMIT_BOX = new ArrayList<>();
   final List<Intent> RESET_BOX = new ArrayList<>();
@@ -36,12 +35,9 @@ public class Chunk {
   public Chunk(int i, World w) {
     this.INDEX = i;
     this.WORLD = w;
-    this.WORLD_WIDTH = WORLD.width();
-    this.WORLD_HEIGHT = WORLD.height();
     this.SIZE = WORLD.chunkSize();
-
-    this.DATA = new int[CHUNK_SIZE * CHUNK_SIZE * FIELDS];
-    this.RECT = new DirtyRect(CHUNK_SIZE);
+    this.DATA = new CellCSOA(SIZE, SIZE);
+    this.RECT = new DirtyRect(SIZE);
   }
 
   //== SETTERS ==//
@@ -49,58 +45,40 @@ public class Chunk {
   //=======================================================================================
 
   //== GETTERS ==//
-  public int getIndex() { return this.INDEX; }
-  public boolean isActive() { return this.active; }
-  public int getTime() { return WORLD.getTime(); }
-  public Random getRandom() { return this.RANDOM; }
-  public int getChunkSize() { return this.CHUNK_SIZE; }
+  public int     index()     { return this.INDEX; }
+  public int     time()      { return WORLD.time(); }
+  public int     size()      { return this.SIZE; }
+  public boolean isActive()  { return this.active; }
+  public Random  getRandom() { return this.RANDOM; }
   //=======================================================================================
 
 
-
+  
   //== DATA ==//
-  private int dataIndex(int cx, int cy) {
-    return (cy * CHUNK_SIZE + cx) * FIELDS;
+  void setDataId(int cx, int cy, int value) {
+    if (!DATA.inBounds(cx, cy)) { return; }
+    DATA.setId(value, DATA.getIndex(cx, cy));
   }
-  private boolean inBounds(int cx, int cy) {
-    return cx >= 0 && cx < CHUNK_SIZE && cy >= 0 && cy < CHUNK_SIZE;
+  void setDataDeadline(int cx, int cy, int value) {
+    if (!DATA.inBounds(cx, cy)) { return; }
+    DATA.setDeadline(value, DATA.getIndex(cx, cy));
+  }
+  void setDataLastUpdatedFrame(int cx, int cy, int value) {
+    if (!DATA.inBounds(cx, cy)) { return; }
+    DATA.setLastUpdatedFrame(value, DATA.getIndex(cx, cy));
   }
 
-  // 0 = nenhuma
-  // 1 = esquerda
-  // 2 = direita
-  // 3 = topo
-  // 4 = baixo
-  // 5 = canto superior-esquerdo
-  // 6 = canto superior-direito
-  // 7 = canto inferior-esquerdo
-  // 8 = canto inferior-direito
-
-  private int getBorder(int cx, int cy) {
-      final int last = CHUNK_SIZE - 1;
-
-      if (cx == 0) {
-          if (cy == 0) return 5;
-          if (cy == last) return 7;
-          return 1;
-      }
-
-      if (cx == last) {
-          if (cy == 0) return 6;
-          if (cy == last) return 8;
-          return 2;
-      }
-
-      if (cy == 0) return 3;
-      if (cy == last) return 4;
-
-      return 0;
+  public int getDataId(int cx, int cy) {
+    if (!DATA.inBounds(cx, cy)) { return CellTypes.OUT_OF_WORLD; }
+    return DATA.getId(DATA.getIndex(cx, cy));
   }
-  void setRawData(int cx, int cy, int pos, int value) {
-    DATA[dataIndex(cx, cy) + pos] = value;
+  public int getDataDeadline(int cx, int cy) {
+    if (!DATA.inBounds(cx, cy)) { return CellTypes.OUT_OF_WORLD; }
+    return DATA.getDeadline(DATA.getIndex(cx, cy));
   }
-  int getRawData(int cx, int cy, int pos) {
-    return DATA[dataIndex(cx, cy) + pos];
+  public int getDataLastUpdatedFrame(int cx, int cy) {
+    if (!DATA.inBounds(cx, cy)) { return CellTypes.OUT_OF_WORLD; }
+    return DATA.getLastUpdatedFrame(DATA.getIndex(cx, cy));
   }
   //=======================================================================================
   
@@ -108,10 +86,10 @@ public class Chunk {
 
   //== COORDS ==//
   public int toGlobalX(int cx) {
-    return WORLD.toGlobalX(getIndex(), cx);
+    return WORLD.toGlobalX(index(), cx);
   }
   public int toGlobalY(int cy) {
-    return WORLD.toGlobalY(getIndex(), cy);
+    return WORLD.toGlobalY(index(), cy);
   }
 
   public int toChunkX(int x) {
@@ -133,7 +111,7 @@ public class Chunk {
   //==============================================
 
   // REGISTRATION
-  public void registerActivation(int senderX, int senderY, int receiverX, int receiverY) {
+  public void registerPing(int senderX, int senderY, int receiverX, int receiverY) {
     registerIntent(true, senderX, senderY, receiverX, receiverY, 0, 0, 0, 0);
   }
 
@@ -144,7 +122,7 @@ public class Chunk {
       int senderId, int senderDl, int receiverId, int receiverDl
       )
   {
-    if (!inBounds(toChunkX(senderX), toChunkY(senderY))) {
+    if (!DATA.inBounds(toChunkX(senderX), toChunkY(senderY))) {
       throw new IllegalArgumentException("Cell out of bounds in: {" + senderX + ", " + senderY + "}");
     }
 
@@ -164,13 +142,23 @@ public class Chunk {
     intent.RECEIVER_DEADLINE = receiverDl;
 
     if (intent.RECEIVER_CHUNK == null) { return; }
-    if (intent.RECEIVER_CHUNK == this) {
-      COMMIT_INBOX.add(intent);
-    } else {
-      COMMIT_OUTBOX.add(intent);
+    intent.RECEIVER_CHUNK.COMMIT_BOX.add(intent);
+  }
+  //=======================================================================================
+
+  
+
+  //== GLOBAL ==//
+  public void setCell(int x, int y, int id, int dl, int lf) {
+    int cx = toChunkX(x);
+    int cy = toChunkY(y);
+    if (DATA.inBounds(cx, cy)) {
+      setDataId(cx, cy, id);
+      setDataDeadline(cx, cy, dl);
+      setDataLastUpdatedFrame(cx, cy, lf);
     }
   }
-
+  //=======================================================================================
   // GETTING
   public int getDataIn(int cx, int cy, int pos) {
     if (!(pos >= 0 && pos < FIELDS)) { 

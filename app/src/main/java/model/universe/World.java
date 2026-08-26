@@ -4,7 +4,8 @@ package model.universe;
 import java.util.Random;
 
 // PROJECT
-import model.extenders.ChunkCSOA;
+import model.util.ChunkCSOA;
+import settings.CellTypes;
 // import java.util.concurrent.CountDownLatch;
 // import java.util.concurrent.ExecutorService;
 // import java.util.concurrent.Executors;
@@ -20,8 +21,7 @@ public class World {
   private final int CHUNK_SIZE;
   private final int WIDTH;
   private final int HEIGHT;
-  private final int DATA_SIZE;
-  private final ChunkSOA DATA;
+  private final ChunkCSOA DATA;
 
   //== VARIABLES ==//
   private int time = 1;
@@ -31,7 +31,6 @@ public class World {
     this.CHUNK_SIZE = cs;
     this.WIDTH = ww;
     this.HEIGHT = wh;
-    this.DATA_SIZE = WIDTH * HEIGHT;
     this.DATA = new ChunkCSOA(WIDTH, HEIGHT);
     generateChunks();
 
@@ -40,7 +39,7 @@ public class World {
   }
 
   private void generateChunks() {
-    for (int i = 0; i < DATA_SIZE; i++) {
+    for (int i = 0; i < DATA.size(); i++) {
       DATA.setChunkAtIndex(new Chunk(i, this), i);
     }
   }
@@ -60,7 +59,7 @@ public class World {
   public int    chunkSize() { return this.CHUNK_SIZE; }
   public int    width()     { return this.WIDTH; }
   public int    height()    { return this.HEIGHT; }
-  public int    dataSize()  { return this.DATA_SIZE; }
+  public int    dataSize()  { return this.DATA.size(); }
   public Random getRandom() { return this.RANDOM; }
   //=======================================================================================
 
@@ -68,7 +67,7 @@ public class World {
 
   //== DATA ==//
   public Chunk getWorldChunk(int wx, int wy) {
-    return DATA.getChunk(wx, wy);
+    return DATA.getChunk(DATA.getIndex(wx, wy));
   }
 
   public Chunk getChunk(int x, int y) {
@@ -114,9 +113,10 @@ public class World {
     }
   }
 
+
   public int getChunkData(int x, int y, int pos) {
     Chunk chunk = getChunk(x, y);
-    if (chunk == null) { return Chunk.OUT_OF_WORLD; }
+    if (chunk == null) { return CellTypes.OUT_OF_WORLD; }
     return chunk.getRawData(toChunkPos(x), toChunkPos(y), pos);
   }
   //=======================================================================================
@@ -173,19 +173,19 @@ public class World {
 
   public void step() {
     for (int i = 0; i < DATA.size(); i++) {
-      DATA.getChunkAtIndex(i).process();
+      DATA.getChunk(i).process();
     }
 
     // distributeIntents();
 
     for (int i = 0; i < DATA.size(); i++) {
-      DATA.getChunkAtIndex(i).commit();
+      DATA.getChunk(i).commit();
     }
 
     // distributeResets();
 
     for (int i = 0; i < DATA.size(); i++) {
-      DATA.getChunkAtIndex(i).reset();
+      DATA.getChunk(i).reset();
     }
 
     incrementTime();

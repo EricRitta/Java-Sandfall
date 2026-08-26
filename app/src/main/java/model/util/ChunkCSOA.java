@@ -1,4 +1,4 @@
-package model.extenders;
+package model.util;
 import model.universe.Chunk;
 
 public class ChunkCSOA {
@@ -24,7 +24,7 @@ public class ChunkCSOA {
 
 
   //== PRIVATES ==//
-  private int getIndex(int wx, int wy) {
+  public int getIndex(int wx, int wy) {
     return wy * width() + wx;
   }
   //=======================================================================================
@@ -32,15 +32,8 @@ public class ChunkCSOA {
 
 
   //== PUBLICS ==//
-  public Chunk getChunk(int wx, int wy) {
-    return getChunkAtIndex(getIndex(wx, wy));
-  }
+  public void setChunk(Chunk c, int i) { this.DATA[i] = c; }
 
-  public void setChunkAtIndex(Chunk c, int i) {
-    DATA[i] = c;
-  }
-  public Chunk getChunkAtIndex(int i) {
-    return DATA[i];
-  }
+  public Chunk getChunk(int i)         { return this.DATA[i]; }
   //=======================================================================================
 }

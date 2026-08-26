@@ -1,4 +1,4 @@
-package util;
+package settings;
 
 public class CellTypes {
   public static final int OUT_OF_WORLD = Integer.MIN_VALUE;

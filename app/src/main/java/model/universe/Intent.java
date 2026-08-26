@@ -1,4 +1,4 @@
-package model.extenders;
+package model.universe;
 import model.universe.Chunk;
 
 public class Intent {

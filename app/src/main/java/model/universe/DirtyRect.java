@@ -1,15 +1,15 @@
-package model.extenders;
+package model.universe;
 
 public class DirtyRect {
-  private int CHUNK_SIZE;
+  private int SIZE;
   private int maxCX = Integer.MIN_VALUE;
   private int maxCY = Integer.MIN_VALUE;
   private int minCX = Integer.MAX_VALUE;
   private int minCY = Integer.MAX_VALUE;
   private boolean empty = true;
 
-  public DirtyRect(int chunkSize) {
-    this.CHUNK_SIZE = chunkSize;
+  public DirtyRect(int Size) {
+    this.SIZE = chunkSize;
   }
  
   //== GETTERS ==//
@@ -22,8 +22,8 @@ public class DirtyRect {
 
   // PRIVATES //
   private void expandBounds(int cx, int cy) {
-    cx = clamp(cx, 0, CHUNK_SIZE - 1);
-    cy = clamp(cy, 0, CHUNK_SIZE - 1);
+    cx = clamp(cx, 0, SIZE - 1);
+    cy = clamp(cy, 0, SIZE - 1);
 
     if (cx > maxCX) { maxCX = cx; }
     if (cy > maxCY) { maxCY = cy; }
