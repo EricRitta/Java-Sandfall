@@ -9,7 +9,7 @@ public class DirtyRect {
   private boolean empty = true;
 
   public DirtyRect(int Size) {
-    this.SIZE = chunkSize;
+    this.SIZE = Size;
   }
  
   //== GETTERS ==//

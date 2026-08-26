@@ -1,8 +1,8 @@
 package model.cells.classes;
 
-import util.CellTypes;
+import settings.CellTypes;
 import model.cells.Cell;
-import model.logic.Chunk;
+import model.universe.Chunk;
 import model.components.movement.*;
 
 public class Sand extends Cell implements PowderMovement {

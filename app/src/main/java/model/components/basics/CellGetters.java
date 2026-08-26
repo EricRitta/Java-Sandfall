@@ -1,16 +1,16 @@
 package model.components.basics;
 
-import model.logic.Chunk;
+import model.universe.Chunk;
 
 public interface CellGetters {
   //== GETS ==//
   default int getCellIn(Chunk chunk, int x, int y) {
-    return chunk.getChunkData(x, y, Chunk.CELL_ID);
+    return chunk.getDataId(x, y);
   }
   default int getDeadlineIn(Chunk chunk, int x, int y) {
-    return chunk.getChunkData(x, y, Chunk.CELL_DEADLINE);
+    return chunk.getDataDeadline(x, y);
   }
   default int getLastMovedIn(Chunk chunk, int x, int y) {
-    return chunk.getChunkData(x, y, Chunk.CELL_LAST_MOVED);
+    return chunk.getDataLastUpdatedFrame(x, y);
   }
 }

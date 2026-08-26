@@ -1,7 +1,7 @@
 package model.cells.classes;
 
-import util.CellTypes;
-import model.logic.Chunk;
+import settings.CellTypes;
+import model.universe.Chunk;
 import model.cells.Cell;
 
 public class Air extends Cell {

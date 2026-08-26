@@ -1,26 +1,19 @@
 package model.components.basics;
-import model.components.basics.*;
-import model.logic.Chunk;
+
+import model.components.basics.CellGetters;
+import model.universe.Chunk;
 
 public interface Movement extends CellGetters {
-  int getDispersionRate();
-  int getGravity();
-  int getId();
-  String getType();
+  int dispersionRate();
+  int gravity();
+  int id();
+  String type();
   
-  //== SETS ==//
-  default void activatePos(Chunk chunk, int fromX, int fromY, int toX, int toY) {
-    chunk.registerActivation(
-      fromX,
-      fromY,
-      toX,
-      toY
-    );
-  }
-  default void pingNeighbors(Chunk chunk, int x, int y) {
+  //== PRIVATE ==//
+  private void pingNeighbors(Chunk chunk, int x, int y) {
     int localX = chunk.toChunkX(x);
     int localY = chunk.toChunkY(y);
-    int chunkSize = chunk.getChunkSize();
+    int chunkSize = chunk.size();
 
     int pingX = 0, pingY = 0;
 
@@ -29,12 +22,24 @@ public interface Movement extends CellGetters {
     if (localY == 0) { pingY = -1; }
     if (localY == chunkSize - 1) { pingY = 1; }
 
-    if (pingX != 0) { activatePos(chunk, x, y, x + pingX, y); }
-    if (pingY != 0) { activatePos(chunk, x, y, x, y + pingY); }
-    if (pingX != 0 && pingY != 0) { activatePos(chunk, x, y, x + pingX, y + pingY); }
+    if (pingX != 0) { pingPosition(chunk, x, y, x + pingX, y); }
+    if (pingY != 0) { pingPosition(chunk, x, y, x, y + pingY); }
+    if (pingX != 0 && pingY != 0) { pingPosition(chunk, x, y, x + pingX, y + pingY); }
   }
+  //=======================================================================================
+
+
 
   //== MOVEMENT BASICS ==//
+  default void pingPosition(Chunk chunk, int fromX, int fromY, int toX, int toY) {
+    chunk.registerPing(
+      fromX,
+      fromY,
+      toX,
+      toY
+    );
+  }
+
   default void moveTo(Chunk chunk, int fromX, int fromY, int toX, int toY) {
     pingNeighbors(chunk, fromX, fromY);
     // pingNeighbors(chunk, toX, toY);
@@ -47,7 +52,7 @@ public interface Movement extends CellGetters {
       toY,
       0, 
       0,
-      getId(),
+      id(),
       getLastMovedIn(chunk, fromX, fromY)
     );
   }
@@ -63,30 +68,33 @@ public interface Movement extends CellGetters {
       toY,
       getCellIn(chunk, toX, toY), 
       getDeadlineIn(chunk, toX, toY),
-      getId(),
+      id(),
       getLastMovedIn(chunk, fromX, fromY)
     );
   }
+  //=======================================================================================
+
+
 
   //== MOVEMENT ADVANCED ==//
   default boolean disperseTo(Chunk chunk, int fromX, int fromY, int direction) {
     int toX = fromX;
     int toY = fromY;
 
-    for (int i = 1; i <= getDispersionRate(); i++) {
+    for (int i = 1; i <= dispersionRate(); i++) {
       int checkX = fromX + (direction * i);
 
       if (getCellIn(chunk, checkX, fromY + 1) == 0) {
         toX = checkX;
         toY = fromY + 1;
-        activatePos(chunk, fromX, fromY, toX, toY);
+        pingPosition(chunk, fromX, fromY, toX, toY);
         break;
       }
 
       if (getCellIn(chunk, checkX, fromY) == 0) {
         toX = checkX;
         toY = fromY;
-        activatePos(chunk, fromX, fromY, toX, toY);
+        pingPosition(chunk, fromX, fromY, toX, toY);
       } else {
         break;
       }
@@ -101,12 +109,12 @@ public interface Movement extends CellGetters {
   default boolean fallTo(Chunk chunk, int fromX, int fromY) {
     int toY = fromY;
 
-    for (int i = 1; i <= getGravity(); i++) {
+    for (int i = 1; i <= gravity(); i++) {
       int checkY = fromY + i;
 
       if (getCellIn(chunk, fromX, checkY) == 0) {
         toY = checkY;
-        activatePos(chunk, fromX, fromY, fromX, toY);
+        pingPosition(chunk, fromX, fromY, fromX, toY);
       } else {
         break;
       }
@@ -116,4 +124,5 @@ public interface Movement extends CellGetters {
     moveTo(chunk, fromX, fromY, fromX, toY);
     return true;
   }
+  //=======================================================================================
 }

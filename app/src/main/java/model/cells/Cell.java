@@ -1,5 +1,5 @@
 package model.cells;
-import model.logic.Chunk;
+import model.universe.Chunk;
 
 public abstract class Cell {
   protected String TYPE; // use the CellType class to define (CellTypes.POWDER)
@@ -7,10 +7,10 @@ public abstract class Cell {
   protected int DISPERSION_RATE = 1;
   protected int GRAVITY = 1;
 
-  public int getId() { return this.ID; }
-  public int getDispersionRate() { return this.DISPERSION_RATE; }
-  public int getGravity() { return this.GRAVITY; }
-  public String getType() { return this.TYPE; }
+  public int id() { return this.ID; }
+  public int dispersionRate() { return this.DISPERSION_RATE; }
+  public int gravity() { return this.GRAVITY; }
+  public String type() { return this.TYPE; }
 
   public abstract boolean step(Chunk chunk, int x, int y);
 }

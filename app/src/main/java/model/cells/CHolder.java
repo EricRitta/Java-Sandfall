@@ -16,7 +16,7 @@ public class CHolder {
 
   static {
     for (Cell c : catalogue) {
-      int cID = c.getId();
+      int cID = c.id();
       Cell desiredCellPos = ALL_CELLS[cID];
       if (desiredCellPos != null) { 
         throw new IllegalStateException("Desired cell position already taken. ID: " + cID); 

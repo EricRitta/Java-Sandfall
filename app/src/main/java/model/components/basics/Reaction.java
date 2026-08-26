@@ -1,6 +1,6 @@
 package model.components.basics;
 import model.components.basics.*;
-import model.logic.Chunk;
+import model.universe.Chunk;
 
 public interface Reaction extends CellGetters {
   int getId();

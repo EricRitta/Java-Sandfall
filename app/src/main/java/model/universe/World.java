@@ -21,7 +21,7 @@ public class World {
   private final int CHUNK_SIZE;
   private final int WIDTH;
   private final int HEIGHT;
-  private final ChunkCSOA DATA;
+  public final ChunkCSOA DATA; // private after
 
   //== VARIABLES ==//
   private int time = 1;
@@ -40,7 +40,7 @@ public class World {
 
   private void generateChunks() {
     for (int i = 0; i < DATA.size(); i++) {
-      DATA.setChunkAtIndex(new Chunk(i, this), i);
+      DATA.setChunk(new Chunk(i, this), i);
     }
   }
   //=======================================================================================
@@ -106,18 +106,8 @@ public class World {
     int cy = toChunkPos(y);
     Chunk chunk = getChunk(x, y);
     if (chunk != null) {
-      chunk.setRawData(cx, cy, Chunk.CELL_ID, id);
-      chunk.setRawData(cx, cy, Chunk.CELL_DEADLINE, deadline);
-      chunk.setRawData(cx, cy, Chunk.CELL_LAST_MOVED, 0);
-      chunk.activateCell(cx, cy);
+      chunk.setCell(cx, cy, id, deadline, 0);
     }
-  }
-
-
-  public int getChunkData(int x, int y, int pos) {
-    Chunk chunk = getChunk(x, y);
-    if (chunk == null) { return CellTypes.OUT_OF_WORLD; }
-    return chunk.getRawData(toChunkPos(x), toChunkPos(y), pos);
   }
   //=======================================================================================
 
@@ -176,13 +166,9 @@ public class World {
       DATA.getChunk(i).process();
     }
 
-    // distributeIntents();
-
     for (int i = 0; i < DATA.size(); i++) {
       DATA.getChunk(i).commit();
     }
-
-    // distributeResets();
 
     for (int i = 0; i < DATA.size(); i++) {
       DATA.getChunk(i).reset();

@@ -16,6 +16,7 @@ public class ChunkCSOA {
 
   //== SETTERS ==//
   //== GETTERS ==//
+  public Chunk[] get()    { return this.DATA; }
   public int width()  { return this.WIDTH; }
   public int height() { return this.HEIGHT; }
   public int size()   { return this.SIZE; }

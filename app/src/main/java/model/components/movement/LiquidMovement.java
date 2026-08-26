@@ -1,7 +1,7 @@
 package model.components.movement;
 
 import model.components.basics.Movement;
-import model.logic.Chunk;
+import model.universe.Chunk;
 
 public interface LiquidMovement extends Movement {
   default boolean tryLiquidMovement(Chunk chunk, int x, int y) {

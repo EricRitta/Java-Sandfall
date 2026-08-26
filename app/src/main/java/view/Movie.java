@@ -2,9 +2,9 @@ package view;
 import static com.raylib.Colors.*;
 import static com.raylib.Raylib.*;
 
-import util.Config;
-import model.logic.Chunk;
-import model.logic.World;
+import settings.Config;
+import model.universe.Chunk;
+import model.universe.World;
 import controller.Director;
 
 public class Movie {
@@ -47,17 +47,17 @@ public class Movie {
     }
  
     private void renderDirtyRects(World w) {
-        for (Chunk chunk : w.DATA) { // ajusta pro nome real do campo/getter de chunks no World
+        for (Chunk chunk : w.DATA.get()) { // ajusta pro nome real do campo/getter de chunks no World
             if (chunk == null) { continue; }
-            if (chunk.RECT.getIsEmpty()) { continue; } // ajusta se RECT tiver um getter em vez de ser público direto
+            if (chunk.RECT.isEmpty()) { continue; } // ajusta se RECT tiver um getter em vez de ser público direto
 
-            int chunkOriginGX = (chunk.getIndex() % w.getBoxSize()) * CHUNK_SIZE;
-            int chunkOriginGY = (chunk.getIndex() / w.getBoxSize()) * CHUNK_SIZE;
+            int chunkOriginGX = (chunk.index() % w.width()) * CHUNK_SIZE;
+            int chunkOriginGY = (chunk.index() / w.height()) * CHUNK_SIZE;
 
-            int rectMinGX = chunkOriginGX + chunk.RECT.getMinCX();
-            int rectMinGY = chunkOriginGY + chunk.RECT.getMinCY();
-            int rectMaxGX = chunkOriginGX + chunk.RECT.getMaxCX();
-            int rectMaxGY = chunkOriginGY + chunk.RECT.getMaxCY();
+            int rectMinGX = chunkOriginGX + chunk.RECT.minCX();
+            int rectMinGY = chunkOriginGY + chunk.RECT.minCY();
+            int rectMaxGX = chunkOriginGX + chunk.RECT.maxCX();
+            int rectMaxGY = chunkOriginGY + chunk.RECT.maxCY();
 
             int screenX = rectMinGX * SCALE;
             int screenY = rectMinGY * SCALE;
@@ -79,7 +79,8 @@ public class Movie {
     private void renderWorld(World w) {
         for (int gy = 0; gy < WORLD_HEIGHT; gy++) {
             for (int gx = 0; gx < WORLD_WIDTH; gx++) {
-                int id = w.getChunkData(gx, gy, Chunk.CELL_ID);
+                Chunk c = w.getChunk(gx, gy);
+                int id = c.getDataId(gx, gy);
  
                 if (id == 0) { continue; }
  

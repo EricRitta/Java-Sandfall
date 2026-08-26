@@ -1,6 +1,6 @@
 package controller;
 
-import model.logic.World;
+import model.universe.World;
 import view.Movie;
 
 public class Director {
@@ -20,7 +20,7 @@ public class Director {
   }
 
   public void init() {
-    WORLD.init();
+    // WORLD.init();
     MOVIE.init();
 
     while (!MOVIE.shouldClose()) {
@@ -41,7 +41,7 @@ public class Director {
       MOVIE.step(WORLD);
     }
 
-    WORLD.shutdown();
+    // WORLD.shutdown();
   }
 
   public void step() {
