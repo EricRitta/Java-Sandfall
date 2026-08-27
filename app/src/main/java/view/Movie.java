@@ -2,7 +2,7 @@ package view;
 import static com.raylib.Colors.*;
 import static com.raylib.Raylib.*;
 
-import settings.Config;
+import util.Config;
 import model.universe.Chunk;
 import model.universe.World;
 import controller.Director;
@@ -16,14 +16,13 @@ public class Movie {
     private final int SCREEN_WIDTH;
     private final int SCREEN_HEIGHT;
 
-    private final int CHUNK_SIZE;
+    private final int CHUNK_SIZE = Config.getInt("CHUNK_SIZE");
  
     public Movie(int wd, int wh) {
-      this.WORLD_WIDTH = wd;
-      this.WORLD_HEIGHT = wh;
+      this.WORLD_WIDTH = wd * CHUNK_SIZE;
+      this.WORLD_HEIGHT = wh * CHUNK_SIZE;
       this.SCREEN_WIDTH = WORLD_WIDTH * SCALE;
       this.SCREEN_HEIGHT = WORLD_HEIGHT * SCALE;
-      this.CHUNK_SIZE = Config.getInt("CHUNK_SIZE"); // ajusta a chave se for diferente no seu Config
     }
  
     public float getDt() {
@@ -39,7 +38,7 @@ public class Movie {
     public void step(World w) {
         BeginDrawing();
         ClearBackground(BLACK);
-        renderWorld(w);
+        // renderWorld(w);
         renderChunkBorders(); // desenhado por cima, depois das células
         renderDirtyRects(w);
         DrawText("FPS: " + GetFPS(), 10, 10, 20, WHITE);

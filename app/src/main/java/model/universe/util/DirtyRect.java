@@ -1,4 +1,4 @@
-package model.universe;
+package model.universe.util;
 
 public class DirtyRect {
   private int SIZE;

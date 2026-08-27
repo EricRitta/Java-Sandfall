@@ -1,7 +1,8 @@
-package model.util;
+package model.universe.util;
+import model.universe.util.CSOA;
 import model.universe.Chunk;
 
-public class ChunkCSOA {
+public class ChunkCSOA implements CSOA {
   private final int WIDTH;
   private final int HEIGHT;
   private final int SIZE;
@@ -27,6 +28,9 @@ public class ChunkCSOA {
   //== PRIVATES ==//
   public int getIndex(int wx, int wy) {
     return wy * width() + wx;
+  }
+  public boolean inBounds(int wx, int wy) {
+    return wx >= 0 && wx < width() && wy >= 0 && wy < height();
   }
   //=======================================================================================
   

@@ -1,16 +1,20 @@
 package model.universe;
 
 // JAVA
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Random;
 
 // PROJECT
-import model.util.CellCSOA;
-import model.universe.DirtyRect;
-import model.universe.Intent;
+import model.universe.util.DirtyRect;
+import model.universe.util.Intent;
+import model.universe.util.IntentPool;
+import model.universe.util.CellCSOA;
 
-import settings.CellTypes;
+import util.CellTypes;
 import model.cells.CHolder;
 import model.cells.Cell;
 
@@ -25,8 +29,9 @@ public class Chunk {
   private final CellCSOA DATA;
   public final DirtyRect RECT; // private after
   
-  final List<Intent> COMMIT_BOX = new ArrayList<>();
-  final List<Intent> RESET_BOX = new ArrayList<>();
+  final Queue<Intent> COMMIT_BOX = new ConcurrentLinkedQueue<>();
+  // final List<Intent> COMMIT_BOX = Collections.synchronizedList(new ArrayList<>());
+  final Queue<Intent> RESET_BOX = new ConcurrentLinkedQueue<>();
 
   //== VARIABLES ==//
   private boolean active = false;
@@ -140,7 +145,7 @@ public class Chunk {
       throw new IllegalArgumentException("Cell out of bounds in: {" + senderX + ", " + senderY + "}");
     }
 
-    Intent intent = new Intent();
+    Intent intent = IntentPool.get();
     intent.ACTIVATION_ONLY = activeOnly;
 
     intent.SENDER_CHUNK = this;
@@ -156,7 +161,7 @@ public class Chunk {
     intent.RECEIVER_DEADLINE = receiverDl;
 
     if (intent.RECEIVER_CHUNK == null) { return; }
-    intent.RECEIVER_CHUNK.COMMIT_BOX.add(intent);
+    intent.RECEIVER_CHUNK.COMMIT_BOX.offer(intent);
   }
   //=======================================================================================
 
@@ -166,10 +171,6 @@ public class Chunk {
   public int getDataId(int x, int y) {
     int cx = toChunkX(x);
     int cy = toChunkY(y);
-    
-    if (DATA.inBounds(cx, cy)) {
-      return getRawDataId(cx, cy);
-    }
 
     Chunk c = WORLD.getChunk(x, y);
     if (c == null) { return CellTypes.OUT_OF_WORLD; }
@@ -180,10 +181,6 @@ public class Chunk {
     int cx = toChunkX(x);
     int cy = toChunkY(y);
     
-    if (DATA.inBounds(cx, cy)) {
-      return getRawDataDeadline(cx, cy);
-    }
-
     Chunk c = WORLD.getChunk(x, y);
     if (c == null) { return CellTypes.OUT_OF_WORLD; }
     return c.getRawDataDeadline(cx, cy);
@@ -193,10 +190,6 @@ public class Chunk {
     int cx = toChunkX(x);
     int cy = toChunkY(y);
     
-    if (DATA.inBounds(cx, cy)) {
-      return getRawDataLastUpdatedFrame(cx, cy);
-    }
-
     Chunk c = WORLD.getChunk(x, y);
     if (c == null) { return CellTypes.OUT_OF_WORLD; }
     return c.getRawDataLastUpdatedFrame(cx, cy);
@@ -214,7 +207,7 @@ public class Chunk {
       activateCell(receiver_cx, receiver_cy);
       // will activate two times if the same cord.
       if (intent.SENDER_X != intent.RECEIVER_X || intent.SENDER_Y != intent.RECEIVER_Y) {
-        intent.SENDER_CHUNK.RESET_BOX.add(intent);
+        intent.SENDER_CHUNK.RESET_BOX.offer(intent);
       }
       return;
     }
@@ -227,7 +220,7 @@ public class Chunk {
       (intent.RECEIVER_ID != 0) ? WORLD.time() : 0
     );
 
-    intent.SENDER_CHUNK.RESET_BOX.add(intent);
+    intent.SENDER_CHUNK.RESET_BOX.offer(intent);
   }
 
   private void applyReset(Intent intent) {
@@ -246,6 +239,8 @@ public class Chunk {
       intent.SENDER_DEADLINE,
       (intent.SENDER_ID != 0) ? WORLD.time() : 0
     );
+
+    IntentPool.free(intent);
   }
   //=======================================================================================
 
@@ -271,75 +266,91 @@ public class Chunk {
 
   // REAL CALLERS
   void process() {
-    COMMIT_BOX.clear();
-    RESET_BOX.clear();
-
     if (RECT.isEmpty()) { 
       setActive(false); 
       return; 
     }
 
-    for (int cy = RECT.minCY(); cy <= RECT.maxCY(); cy++) {
-      for (int cx = RECT.minCX(); cx <= RECT.maxCX(); cx++) {
+    setActive(true);
+
+    boolean reverseCX = getRandom().nextBoolean();
+    boolean reverseCY = getRandom().nextBoolean();
+
+    for (int dy = RECT.minCY(); dy <= RECT.maxCY(); dy++) {
+      int cy = reverseCY ? (RECT.maxCY() - (dy - RECT.minCY())) : dy;
+      for (int dx = RECT.minCX(); dx <= RECT.maxCX(); dx++) {
+        int cx = reverseCX ? (RECT.maxCX() - (dx - RECT.minCX())) : dx;
+
         stepCell(cx, cy);
       }
     }
-
-    // boolean reverseCX = getRandom().nextBoolean();
-    // boolean reverseCY = getRandom().nextBoolean();
-    //
-    // for (int dy = RECT.getMinCY(); dy <= RECT.getMaxCY(); dy++) {
-    //   int cy = reverseCY ? (RECT.getMaxCY() - (dy - RECT.getMinCY())) : dy;
-    //   for (int dx = RECT.getMinCX(); dx <= RECT.getMaxCX(); dx++) {
-    //     int cx = reverseCX ? (RECT.getMaxCX() - (dx - RECT.getMinCX())) : dx;
-    //
-    //     stepCell(cx, cy);
-    //   }
-    // }
 
     RECT.clear();
   }
 
   void commit() {
-
-    for (int i = COMMIT_BOX.size() - 1; i > 0; i--) {
-      int j = getRandom().nextInt(i + 1);
-      Intent tmp = COMMIT_BOX.get(i);
-      COMMIT_BOX.set(i, COMMIT_BOX.get(j));
-      COMMIT_BOX.set(j, tmp);
-
-      Intent current = COMMIT_BOX.get(i);
-
+    if (COMMIT_BOX.isEmpty()) { return; }
+    for (Intent current : COMMIT_BOX) {
+      if (current.SENDER_CHUNK == null) { continue; }
       if (current.ACTIVATION_ONLY) {
         applyCommit(current);
         continue;
       }
 
       int cx = toChunkX(current.RECEIVER_X);
-      int cy = toChunkX(current.RECEIVER_Y);
+      int cy = toChunkY(current.RECEIVER_Y);
       if (getRawDataLastUpdatedFrame(cx, cy) == WORLD.time()) { continue; }
       applyCommit(current);
     }
-
-    if (!COMMIT_BOX.isEmpty()) {
-      Intent first = COMMIT_BOX.get(0);
-
-      int cx = toChunkX(first.RECEIVER_X);
-      int cy = toChunkX(first.RECEIVER_Y);
-      if (first.ACTIVATION_ONLY) {
-        applyCommit(first);
-
-      } else if (getRawDataLastUpdatedFrame(cx, cy) == WORLD.time()) {
-        applyCommit(first);
-      }
-    }
-
+    COMMIT_BOX.clear();
   }
 
+  // void commit() {
+  //   synchronized (COMMIT_BOX) {
+  //     if (COMMIT_BOX.isEmpty()) { return; }
+  //     for (int i = COMMIT_BOX.size() - 1; i > 0; i--) {
+  //       int j = getRandom().nextInt(i + 1);
+  //       Intent tmp = COMMIT_BOX.get(i);
+  //       COMMIT_BOX.set(i, COMMIT_BOX.get(j));
+  //       COMMIT_BOX.set(j, tmp);
+  //
+  //       Intent current = COMMIT_BOX.get(i);
+  //
+  //       if (current.ACTIVATION_ONLY) {
+  //         applyCommit(current);
+  //         continue;
+  //       }
+  //
+  //       int cx = toChunkX(current.RECEIVER_X);
+  //       int cy = toChunkY(current.RECEIVER_Y);
+  //       if (getRawDataLastUpdatedFrame(cx, cy) == WORLD.time()) { continue; }
+  //       applyCommit(current);
+  //     }
+  //
+  //     if (!COMMIT_BOX.isEmpty()) {
+  //       Intent first = COMMIT_BOX.get(0);
+  //
+  //       int cx = toChunkX(first.RECEIVER_X);
+  //       int cy = toChunkY(first.RECEIVER_Y);
+  //       if (first.ACTIVATION_ONLY) {
+  //         applyCommit(first);
+  //
+  //       } else if (getRawDataLastUpdatedFrame(cx, cy) != WORLD.time()) {
+  //         applyCommit(first);
+  //       }
+  //     }
+  //
+  //     COMMIT_BOX.clear();
+  //   }
+  // }
+
   void reset() {
+    if (RESET_BOX.isEmpty()) { return; }
     for (Intent intent : RESET_BOX) {
       applyReset(intent);
     }
+
+    RESET_BOX.clear();
   }
   //=======================================================================================
 }

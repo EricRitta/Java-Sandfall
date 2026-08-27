@@ -1,11 +1,21 @@
 package controller;
 
+import util.Config;
 import model.universe.World;
 import view.Movie;
 
 public class Director {
-  private final World WORLD;
-  private final Movie MOVIE;
+  private final World WORLD = new World(
+    Config.getInt("CHUNK_SIZE"),
+    Config.getInt("WORLD_WIDTH"),
+    Config.getInt("WORLD_HEIGHT")
+  );
+
+  private final Movie MOVIE = new Movie(
+    Config.getInt("WORLD_WIDTH"),
+    Config.getInt("WORLD_HEIGHT")
+  );
+
   private boolean paused = false;
 
   private static final float FIXED_TIMESTAMP = 1.0f / 60.0f;
@@ -13,11 +23,6 @@ public class Director {
 
   public void setPaused(boolean v) { this.paused = v; }
   public boolean isPaused() { return this.paused; }
-
-  public Director(World w, Movie m) {
-    this.WORLD = w;
-    this.MOVIE = m;
-  }
 
   public void init() {
     // WORLD.init();
@@ -41,7 +46,7 @@ public class Director {
       MOVIE.step(WORLD);
     }
 
-    // WORLD.shutdown();
+    WORLD.shutdown();
   }
 
   public void step() {

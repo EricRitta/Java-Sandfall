@@ -1,6 +1,6 @@
 package model.cells.classes;
 
-import settings.CellTypes;
+import util.CellTypes;
 import model.cells.Cell;
 import model.universe.Chunk;
 import model.components.movement.*;

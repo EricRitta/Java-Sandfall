@@ -1,6 +1,7 @@
-package model.util;
+package model.universe.util;
+import model.universe.util.CSOA;
 
-public class CellCSOA {
+public class CellCSOA implements CSOA {
   private final int WIDTH;
   private final int HEIGHT;
   private final int SIZE;
