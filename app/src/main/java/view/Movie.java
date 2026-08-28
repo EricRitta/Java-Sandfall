@@ -10,6 +10,9 @@ import model.universe.Chunk;
 import model.universe.World;
 import controller.Director;
 
+import model.cells.CHolder;
+import model.cells.Cell;
+
 public class Movie {
     private static final int SCALE = Config.getInt("SCREEN_SCALE");
  
@@ -42,18 +45,44 @@ public class Movie {
         InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Falling Sand Engine");
         SetExitKey(KEY_NULL);
 
-        // Inicializa o buffer na RAM (Java) e o Ponteiro do JavaCPP
         int totalPixels = WORLD_WIDTH * WORLD_HEIGHT;
         pixelBuffer = new int[totalPixels];
         pixelPointer = new IntPointer(totalPixels);
         
-        // Cria uma imagem preta base e envia para a VRAM (GPU)
         Image baseImage = GenImageColor(WORLD_WIDTH, WORLD_HEIGHT, BLACK);
         texture = LoadTextureFromImage(baseImage);
-        UnloadImage(baseImage); // Libera a imagem base da RAM
+        UnloadImage(baseImage);
 
         texturePos = new Vector2().x(0).y(0);
-        blackPixelInt = ColorToInt(BLACK);
+        blackPixelInt = toRgbaInt(BLACK);
+    }
+
+    /**
+     * Converte a cor do Raylib para um inteiro de 32 bits no formato R8G8B8A8 
+     * compatível com a memória Little-Endian do processador e OpenGL.
+     */
+    private int toRgbaInt(Color color) {
+        if (color == null) return 0xFF00FFFF; // Magenta para erros/nulo
+        int r = color.r() & 0xFF;
+        int g = color.g() & 0xFF;
+        int b = color.b() & 0xFF;
+        int a = color.a() & 0xFF;
+        // Ordem dos bytes em memória LSB -> MSB: [R, G, B, A]
+        return r | (g << 8) | (b << 16) | (a << 24);
+    }
+
+    /**
+     * Busca a cor da célula no CHolder e salva no cache local.
+     */
+    private int getCellColorInt(int id) {
+        if (id <= 0) { return blackPixelInt; }
+        if (id == 0 ) { return blackPixelInt; }
+
+        // Busca o objeto Cell através do CHolder
+        Cell cell = CHolder.get(id);
+        Color c = cell.getColor();
+        int colorInt = toRgbaInt(c);
+        return colorInt;
     }
  
     public void step(World w) {
@@ -61,26 +90,22 @@ public class Movie {
         ClearBackground(BLACK);
         
         renderWorld(w);
-        // renderChunkBorders(); 
-        // renderDirtyRects(w);
+        renderChunkBorders(); 
+        renderDirtyRects(w);
         
         DrawText("FPS: " + GetFPS(), 10, 10, 20, WHITE);
         EndDrawing();
     }
  
     private void renderWorld(World w) {
-        // 1. Limpa o buffer de pixels na memória RAM instantaneamente (sem JNI)
         Arrays.fill(pixelBuffer, blackPixelInt);
 
-        // 2. Percorre diretamente os Chunks ao invés de usar coordenadas globais
         for (Chunk chunk : w.DATA.get()) {
             if (chunk == null) { continue; }
 
-            // Pré-calcula a origem global do chunk para evitar matemática no loop interno
             int chunkOriginGX = (chunk.index() % w.width()) * CHUNK_SIZE;
             int chunkOriginGY = (chunk.index() / w.height()) * CHUNK_SIZE;
 
-            // 3. Lê os dados brutos da array do Chunk
             for (int cy = 0; cy < CHUNK_SIZE; cy++) {
                 for (int cx = 0; cx < CHUNK_SIZE; cx++) {
                     int id = chunk.getRawDataId(cx, cy);
@@ -89,17 +114,15 @@ public class Movie {
                     int gx = chunkOriginGX + cx;
                     int gy = chunkOriginGY + cy;
                     
-                    // Converte a cor para inteiro e escreve na array plana
-                    pixelBuffer[gy * WORLD_WIDTH + gx] = ColorToInt(getColorForId(id));
+                    // Escreve a cor da célula direto do cache
+                    pixelBuffer[gy * WORLD_WIDTH + gx] = getCellColorInt(id);
                 }
             }
         }
 
-        // 4. Copia a array do Java para o JavaCPP e atualiza a GPU em uma tacada só
         pixelPointer.put(pixelBuffer, 0, pixelBuffer.length);
         UpdateTexture(texture, pixelPointer);
         
-        // 5. Desenha a Textura final escalonada na tela
         DrawTextureEx(texture, texturePos, 0f, SCALE, WHITE);
     }
 
@@ -132,15 +155,6 @@ public class Movie {
         for (int gy = 0; gy <= WORLD_HEIGHT; gy += CHUNK_SIZE) {
             int screenY = gy * SCALE;
             DrawLine(0, screenY, SCREEN_WIDTH, screenY, GREEN);
-        }
-    }
-
-    private Color getColorForId(int id) {
-        switch (id) {
-            case 1: return YELLOW;
-            case 201: return YELLOW; 
-            case 3: return DARKGRAY;
-            default: return MAGENTA;
         }
     }
 
@@ -191,7 +205,7 @@ public class Movie {
     }
  
     public void close() {
-        pixelPointer.close(); // Previne vazamento de memória do C++
+        pixelPointer.close();
         UnloadTexture(texture);
         CloseWindow();
     }

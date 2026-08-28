@@ -25,7 +25,6 @@ public class Chunk {
 
   private final CellCSOA DATA;
   public final DirtyRect RECT; // private after
-  private final int[] scanOrder;
   
   final Queue<Intent> COMMIT_BOX = new ConcurrentLinkedQueue<>();
   final Queue<Intent> RESET_BOX = new ConcurrentLinkedQueue<>();
@@ -40,7 +39,6 @@ public class Chunk {
     this.SIZE = WORLD.chunkSize();
     this.DATA = new CellCSOA(SIZE, SIZE);
     this.RECT = new DirtyRect(SIZE);
-    this.scanOrder = new int[SIZE * SIZE];
   }
 
   //== SETTERS ==//
