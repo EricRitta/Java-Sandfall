@@ -23,7 +23,7 @@ public class Intent {
 
     RECEIVER_CHUNK = null;
     RECEIVER_X = 0;
-    RECEIVER_X = 0;
+    RECEIVER_Y = 0;
     RECEIVER_ID = 0;
     RECEIVER_DEADLINE = 0;
   }

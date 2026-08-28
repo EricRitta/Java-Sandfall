@@ -4,21 +4,12 @@ package model.universe;
 import java.util.Random;
 
 // PROJECT
+import util.ParallelProcessor;
 import model.universe.util.ChunkCSOA;
-import util.CellTypes;
-
-// temp
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 
 public class World {
   //== CONSTANTS ==//
   private final Random RANDOM = new Random();
-
-  private final int NUM_THREADS;
-  private final ExecutorService POOL;
 
   private final int CHUNK_SIZE;
   private final int WIDTH;
@@ -35,9 +26,6 @@ public class World {
     this.HEIGHT = wh;
     this.DATA = new ChunkCSOA(WIDTH, HEIGHT);
     generateChunks();
-
-    this.NUM_THREADS = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
-    this.POOL = Executors.newFixedThreadPool(NUM_THREADS);
   }
 
   private void generateChunks() {
@@ -116,74 +104,15 @@ public class World {
 
 
   //== GAME LOGIC ==//
-  // INTENT
-  // private void distributeIntents() {
-  //   for (Chunk origin : DATA) {
-  //     for (Intent intent : origin.COMMIT_OUTBOX) {
-  //       intent.RECEIVER_CHUNK.COMMIT_INBOX.add(intent);
-  //     }
-  //   }
-  // }
-  //
-  // private void distributeResets() {
-  //   for (Chunk origin : DATA) {
-  //     for (Intent intent : origin.RESET_OUTBOX) {
-  //       intent.SENDER_CHUNK.RESET_INBOX.add(intent);
-  //     }
-  //   }
-  // }
-
-  private void parallelForEach(Consumer<Chunk> action) throws RuntimeException {
-    int total = dataSize();
-    int batches = Math.min(NUM_THREADS, total);
-    int batchSize = (total + batches - 1) / batches;
-
-    CountDownLatch latch = new CountDownLatch(batches);
-
-    for (int b = 0; b < batches; b++) {
-      int start = b * batchSize;
-      int end = Math.min(start + batchSize, total);
-
-      POOL.execute(() -> {
-        try {
-          for (int i = start; i < end; i++) {
-            action.accept(DATA.getChunk(i));
-          }
-        } finally {
-          latch.countDown();
-        }
-      });
-    }
-
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException("Interrupted, waiting for parallelForEach to finish.", e);
-    }
-  }
-
   public void step() {
-    parallelForEach(Chunk::process);
-    parallelForEach(Chunk::commit);
-    parallelForEach(Chunk::reset);
-    // for (int i = 0; i < DATA.size(); i++) {
-    //   DATA.getChunk(i).process();
-    // }
-    //
-    // for (int i = 0; i < DATA.size(); i++) {
-    //   DATA.getChunk(i).commit();
-    // }
-    //
-    // for (int i = 0; i < DATA.size(); i++) {
-    //   DATA.getChunk(i).reset();
-    // }
-
+    ParallelProcessor.forEach(DATA.get(), Chunk::process);
+    ParallelProcessor.forEach(DATA.get(), Chunk::commit);
+    ParallelProcessor.forEach(DATA.get(), Chunk::reset);
     incrementTime();
   }
 
   public void shutdown() {
-    if (POOL != null) { POOL.shutdown(); }
+    ParallelProcessor.shutdown();
   }
   //=======================================================================================
 }

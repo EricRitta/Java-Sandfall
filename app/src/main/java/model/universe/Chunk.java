@@ -3,9 +3,6 @@ package model.universe;
 // JAVA
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.Collections;
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Random;
 
 // PROJECT
@@ -28,9 +25,9 @@ public class Chunk {
 
   private final CellCSOA DATA;
   public final DirtyRect RECT; // private after
+  private final int[] scanOrder;
   
   final Queue<Intent> COMMIT_BOX = new ConcurrentLinkedQueue<>();
-  // final List<Intent> COMMIT_BOX = Collections.synchronizedList(new ArrayList<>());
   final Queue<Intent> RESET_BOX = new ConcurrentLinkedQueue<>();
 
   //== VARIABLES ==//
@@ -43,6 +40,7 @@ public class Chunk {
     this.SIZE = WORLD.chunkSize();
     this.DATA = new CellCSOA(SIZE, SIZE);
     this.RECT = new DirtyRect(SIZE);
+    this.scanOrder = new int[SIZE * SIZE];
   }
 
   //== SETTERS ==//
@@ -264,7 +262,7 @@ public class Chunk {
     cell.step(this, x, y);
   }
 
-  // REAL CALLERS
+  //== PHASES
   void process() {
     if (RECT.isEmpty()) { 
       setActive(false); 
@@ -290,67 +288,26 @@ public class Chunk {
 
   void commit() {
     if (COMMIT_BOX.isEmpty()) { return; }
-    for (Intent current : COMMIT_BOX) {
+    Intent current;
+    while ((current = COMMIT_BOX.poll()) != null) {
       if (current.SENDER_CHUNK == null) { continue; }
       if (current.ACTIVATION_ONLY) {
         applyCommit(current);
         continue;
       }
-
+  
       int cx = toChunkX(current.RECEIVER_X);
       int cy = toChunkY(current.RECEIVER_Y);
       if (getRawDataLastUpdatedFrame(cx, cy) == WORLD.time()) { continue; }
       applyCommit(current);
     }
-    COMMIT_BOX.clear();
   }
 
-  // void commit() {
-  //   synchronized (COMMIT_BOX) {
-  //     if (COMMIT_BOX.isEmpty()) { return; }
-  //     for (int i = COMMIT_BOX.size() - 1; i > 0; i--) {
-  //       int j = getRandom().nextInt(i + 1);
-  //       Intent tmp = COMMIT_BOX.get(i);
-  //       COMMIT_BOX.set(i, COMMIT_BOX.get(j));
-  //       COMMIT_BOX.set(j, tmp);
-  //
-  //       Intent current = COMMIT_BOX.get(i);
-  //
-  //       if (current.ACTIVATION_ONLY) {
-  //         applyCommit(current);
-  //         continue;
-  //       }
-  //
-  //       int cx = toChunkX(current.RECEIVER_X);
-  //       int cy = toChunkY(current.RECEIVER_Y);
-  //       if (getRawDataLastUpdatedFrame(cx, cy) == WORLD.time()) { continue; }
-  //       applyCommit(current);
-  //     }
-  //
-  //     if (!COMMIT_BOX.isEmpty()) {
-  //       Intent first = COMMIT_BOX.get(0);
-  //
-  //       int cx = toChunkX(first.RECEIVER_X);
-  //       int cy = toChunkY(first.RECEIVER_Y);
-  //       if (first.ACTIVATION_ONLY) {
-  //         applyCommit(first);
-  //
-  //       } else if (getRawDataLastUpdatedFrame(cx, cy) != WORLD.time()) {
-  //         applyCommit(first);
-  //       }
-  //     }
-  //
-  //     COMMIT_BOX.clear();
-  //   }
-  // }
-
   void reset() {
-    if (RESET_BOX.isEmpty()) { return; }
-    for (Intent intent : RESET_BOX) {
+    Intent intent;
+    while ((intent = RESET_BOX.poll()) != null) {
       applyReset(intent);
     }
-
-    RESET_BOX.clear();
   }
   //=======================================================================================
 }

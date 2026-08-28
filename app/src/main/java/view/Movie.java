@@ -1,6 +1,9 @@
 package view;
+
 import static com.raylib.Colors.*;
 import static com.raylib.Raylib.*;
+import org.bytedeco.javacpp.IntPointer;
+import java.util.Arrays;
 
 import util.Config;
 import model.universe.Chunk;
@@ -15,8 +18,14 @@ public class Movie {
 
     private final int SCREEN_WIDTH;
     private final int SCREEN_HEIGHT;
-
     private final int CHUNK_SIZE = Config.getInt("CHUNK_SIZE");
+
+    // === Componentes de Renderização Otimizada ===
+    private Texture texture;
+    private int[] pixelBuffer;
+    private IntPointer pixelPointer;
+    private Vector2 texturePos;
+    private int blackPixelInt;
  
     public Movie(int wd, int wh) {
       this.WORLD_WIDTH = wd * CHUNK_SIZE;
@@ -30,25 +39,73 @@ public class Movie {
     }
 
     public void init() {
-        InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Test Screen");
-        //SetTargetFPS(Config.getInt("TARGET_FPS"));
+        InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Falling Sand Engine");
         SetExitKey(KEY_NULL);
+
+        // Inicializa o buffer na RAM (Java) e o Ponteiro do JavaCPP
+        int totalPixels = WORLD_WIDTH * WORLD_HEIGHT;
+        pixelBuffer = new int[totalPixels];
+        pixelPointer = new IntPointer(totalPixels);
+        
+        // Cria uma imagem preta base e envia para a VRAM (GPU)
+        Image baseImage = GenImageColor(WORLD_WIDTH, WORLD_HEIGHT, BLACK);
+        texture = LoadTextureFromImage(baseImage);
+        UnloadImage(baseImage); // Libera a imagem base da RAM
+
+        texturePos = new Vector2().x(0).y(0);
+        blackPixelInt = ColorToInt(BLACK);
     }
  
     public void step(World w) {
         BeginDrawing();
         ClearBackground(BLACK);
-        // renderWorld(w);
-        renderChunkBorders(); // desenhado por cima, depois das células
-        renderDirtyRects(w);
+        
+        renderWorld(w);
+        // renderChunkBorders(); 
+        // renderDirtyRects(w);
+        
         DrawText("FPS: " + GetFPS(), 10, 10, 20, WHITE);
         EndDrawing();
     }
  
-    private void renderDirtyRects(World w) {
-        for (Chunk chunk : w.DATA.get()) { // ajusta pro nome real do campo/getter de chunks no World
+    private void renderWorld(World w) {
+        // 1. Limpa o buffer de pixels na memória RAM instantaneamente (sem JNI)
+        Arrays.fill(pixelBuffer, blackPixelInt);
+
+        // 2. Percorre diretamente os Chunks ao invés de usar coordenadas globais
+        for (Chunk chunk : w.DATA.get()) {
             if (chunk == null) { continue; }
-            if (chunk.RECT.isEmpty()) { continue; } // ajusta se RECT tiver um getter em vez de ser público direto
+
+            // Pré-calcula a origem global do chunk para evitar matemática no loop interno
+            int chunkOriginGX = (chunk.index() % w.width()) * CHUNK_SIZE;
+            int chunkOriginGY = (chunk.index() / w.height()) * CHUNK_SIZE;
+
+            // 3. Lê os dados brutos da array do Chunk
+            for (int cy = 0; cy < CHUNK_SIZE; cy++) {
+                for (int cx = 0; cx < CHUNK_SIZE; cx++) {
+                    int id = chunk.getRawDataId(cx, cy);
+                    if (id == 0) { continue; }
+
+                    int gx = chunkOriginGX + cx;
+                    int gy = chunkOriginGY + cy;
+                    
+                    // Converte a cor para inteiro e escreve na array plana
+                    pixelBuffer[gy * WORLD_WIDTH + gx] = ColorToInt(getColorForId(id));
+                }
+            }
+        }
+
+        // 4. Copia a array do Java para o JavaCPP e atualiza a GPU em uma tacada só
+        pixelPointer.put(pixelBuffer, 0, pixelBuffer.length);
+        UpdateTexture(texture, pixelPointer);
+        
+        // 5. Desenha a Textura final escalonada na tela
+        DrawTextureEx(texture, texturePos, 0f, SCALE, WHITE);
+    }
+
+    private void renderDirtyRects(World w) {
+        for (Chunk chunk : w.DATA.get()) { 
+            if (chunk == null || chunk.RECT.isEmpty()) { continue; }
 
             int chunkOriginGX = (chunk.index() % w.width()) * CHUNK_SIZE;
             int chunkOriginGY = (chunk.index() / w.height()) * CHUNK_SIZE;
@@ -67,38 +124,11 @@ public class Movie {
         }
     }
 
-    public boolean shouldClose() {
-        return WindowShouldClose();
-    }
- 
-    public void close() {
-        CloseWindow();
-    }
- 
-    private void renderWorld(World w) {
-        for (int gy = 0; gy < WORLD_HEIGHT; gy++) {
-            for (int gx = 0; gx < WORLD_WIDTH; gx++) {
-                Chunk c = w.getChunk(gx, gy);
-                int id = c.getDataId(gx, gy);
- 
-                if (id == 0) { continue; }
- 
-                Color color = getColorForId(id);
-                DrawRectangle(gx * SCALE, gy * SCALE, SCALE, SCALE, color);
-            }
-        }
-    }
-
-    // desenha uma linha na fronteira exata de cada chunk, pra visualizar onde uma célula
-    // atravessa de um chunk pro outro
     private void renderChunkBorders() {
-        // linhas verticais, a cada CHUNK_SIZE células
         for (int gx = 0; gx <= WORLD_WIDTH; gx += CHUNK_SIZE) {
             int screenX = gx * SCALE;
             DrawLine(screenX, 0, screenX, SCREEN_HEIGHT, GREEN);
         }
-
-        // linhas horizontais, a cada CHUNK_SIZE células
         for (int gy = 0; gy <= WORLD_HEIGHT; gy += CHUNK_SIZE) {
             int screenY = gy * SCALE;
             DrawLine(0, screenY, SCREEN_WIDTH, screenY, GREEN);
@@ -107,10 +137,10 @@ public class Movie {
 
     private Color getColorForId(int id) {
         switch (id) {
-            case 1: return YELLOW;  // sand, exemplo
-            case 201: return BLUE;    // water, exemplo
-            case 3: return DARKGRAY; // metal, exemplo
-            default: return MAGENTA; // cor "erro", fácil de notar se algum id não mapeado aparecer
+            case 1: return YELLOW;
+            case 201: return YELLOW; 
+            case 3: return DARKGRAY;
+            default: return MAGENTA;
         }
     }
 
@@ -137,7 +167,7 @@ public class Movie {
     }
  
     private void onWorldClick(World w, int gx, int gy) {
-      int radius = 10; // raio do brush
+      int radius = 30;
       int centerX = gx;
       int centerY = gy;
 
@@ -146,7 +176,7 @@ public class Movie {
               int dx = x - centerX;
               int dy = y - centerY;
               if (dx*dx + dy*dy <= radius*radius) {
-                  w.setWorldCellIn(x, y, 1, 0);
+                  w.setWorldCellIn(x, y, 201, 0);
               }
           }
       }
@@ -154,5 +184,15 @@ public class Movie {
  
     private int screenToWorld(int screenCoord) {
         return screenCoord / SCALE;
+    }
+
+    public boolean shouldClose() {
+        return WindowShouldClose();
+    }
+ 
+    public void close() {
+        pixelPointer.close(); // Previne vazamento de memória do C++
+        UnloadTexture(texture);
+        CloseWindow();
     }
 }

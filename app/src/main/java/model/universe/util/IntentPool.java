@@ -1,28 +1,34 @@
 package model.universe.util;
 import model.universe.util.Intent;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.ArrayDeque;
+import java.lang.ThreadLocal;
 
 public class IntentPool {
-  private static final int INITIAL_VALUE = 4096;
-  private static final ConcurrentLinkedQueue<Intent> POOL = new ConcurrentLinkedQueue<>();
-  static {
-    for (int i = 0; i < INITIAL_VALUE; i++) {
-      POOL.offer(new Intent());
+  //== CONSTANTS ==//
+  private static final ThreadLocal<ArrayDeque<Intent>> LOCAL_POOL = new ThreadLocal<>();
+
+  private static ArrayDeque<Intent> getPool() {
+    ArrayDeque<Intent> pool = LOCAL_POOL.get();
+    if (pool == null) {
+      pool = new ArrayDeque<Intent>();
+      LOCAL_POOL.set(pool);
     }
+    return pool;
   }
 
   public static Intent get() {
-    Intent intent = POOL.poll();
-    if (intent == null) {
+    ArrayDeque<Intent> pool = getPool();
+    if (pool.isEmpty()) {
       return new Intent();
     }
-    return intent;
+    return pool.pop();
   }
 
   public static void free(Intent intent) {
     if (intent == null) { return; }
+    ArrayDeque<Intent> pool = getPool();
     intent.clear();
-    POOL.offer(intent);
+    pool.push(intent);
   }
 }
